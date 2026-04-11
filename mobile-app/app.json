@@ -9,10 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
-      "infoPlist": {
-        "NSCameraUsageDescription": "O app precisa da câmera para escanear o gabarito."
-      }
+      "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
