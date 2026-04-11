@@ -3,8 +3,8 @@
   import { LinearGradient } from 'expo-linear-gradient';
   import { ScanLine, FileText, BarChart3, Settings, ListChecks, Activity } from 'lucide-react-native';
   import React, { act } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { SafeAreaView } from 'react-native-safe-area-context';
+  import { StatusBar } from 'expo-status-bar';
+  import { SafeAreaView } from 'react-native-safe-area-context';
 
   const styles = StyleSheet.create({
     safeArea: {
