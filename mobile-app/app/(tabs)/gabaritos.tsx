@@ -14,11 +14,12 @@ export default function HomeScreen() {
       <View>
         <Header
           title="Meus Gabaritos"
+          subtitle=''
           brand={<HeaderBackButton onPress={() => navigation.goBack()} />}
           rightAction={
             <TouchableOpacity style={styles.rightAction}>
-            <IconSymbol name="description" size={20} color="#fff" />
-             <Text style={styles.rightActionText}>Novo</Text>
+            <IconSymbol name="doc.text" size={20} color="#fff" />
+            <Text style={styles.rightActionText}>Novo</Text>
             </TouchableOpacity>
           }
         />
@@ -57,7 +58,7 @@ export default function HomeScreen() {
           disciplina="geografia"
         />
 
-         <GabaritoCard
+        <GabaritoCard
                   titulo="Gabarito 1"
                   descricao="Descricao do gabarito 1"
                   questoes={30}
