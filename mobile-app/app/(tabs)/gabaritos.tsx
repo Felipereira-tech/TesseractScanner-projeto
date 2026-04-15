@@ -4,10 +4,12 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { GabaritoCard } from '@/components/ui/gabaritoCard';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 
 
 export default function HomeScreen() {
   const navigation = useNavigation();
+  const router = useRouter();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -17,7 +19,7 @@ export default function HomeScreen() {
           subtitle=''
           brand={<HeaderBackButton onPress={() => navigation.goBack()} />}
           rightAction={
-            <TouchableOpacity style={styles.rightAction}>
+            <TouchableOpacity style={styles.rightAction} onPress={() => router.push('/criar-gabarito')}>
             <IconSymbol name="doc.text" size={20} color="#fff" />
             <Text style={styles.rightActionText}>Novo</Text>
             </TouchableOpacity>
