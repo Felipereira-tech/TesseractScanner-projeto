@@ -231,7 +231,7 @@ export default function HomeScreen() {
 
           <View style={{ height: 1, backgroundColor: 'transparent', marginVertical: 3 }} />
 
-          <TouchableOpacity onPress={() => router.push('/gabaritos')}>
+          <TouchableOpacity onPress={() => router.push('/criar-gabarito')}>
             <View style={styles.card}>
               <View>
                 <Text style={styles.cardTitle}>Criar Gabarito</Text>
