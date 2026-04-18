@@ -1,174 +1,84 @@
 # Tesseract - Scanner de Cartão Resposta
 
-Este projeto consiste em um aplicativo Android desenvolvido com React Native integrado a um backend em Python utilizando OpenCV e Supabase. O objetivo é capturar imagens de cartões resposta, processá-las, gerenciar dados via banco de dados e retornar automaticamente os resultados.
+Este projeto consiste em um aplicativo Android desenvolvido com React Native integrado a um backend em Python utilizando OpenCV, Flask e Supabase. O objetivo é capturar imagens de cartões resposta, processá-las e gerenciar os resultados automaticamente.
+---## 📂 Estrutura do Projeto
+O projeto adota uma estrutura organizada por responsabilidades (controllers, services, routes), facilitando a manutenção.
 
----
-
-## Estrutura do Projeto
-
-Importante: o nome da pasta raiz do projeto deve ser exatamente:
-
-```
-tesseract
-```
-
-Estrutura esperada:
-
-```
+```text
 tesseract/
-├── backend/              # API Python, OpenCV e conexão com Supabase
-│   ├── .env              # Chaves de acesso (NÃO enviar para o Git)
-│   ├── config.py         # Configuração do cliente Supabase
-│   ├── main.py           # Rotas da API FastAPI
-│   └── venv/             # Ambiente virtual
-├── mobile-app/           # Aplicativo React Native (Expo)
+├── backend/                  # API Python (Flask)
+│   ├── src/
+│   │   ├── __init__.py       # Inicialização do App Flask & Blueprints
+│   │   ├── config/           # Configurações (Banco de Dados)
+│   │   ├── controllers/      # Validação de entradas e controle de fluxo
+│   │   ├── services/         # Lógica de negócio (OpenCV e Regras)
+│   │   ├── routes/           # Definição dos Endpoints
+│   │   └── middleware/       # Filtros e Segurança
+│   ├── main.py               # Ponto de entrada do servidor
+│   ├── .env                  # Chaves de acesso (NÃO enviar para o Git)
+│   └── venv/                 # Ambiente virtual
+├── mobile-app/               # Aplicativo React Native (Expo)
 └── README.md
-```
 
----
-
-## Instalação das Dependências
-
-### Backend (Python)
-
+------------------------------
+## 🚀 Instalação das Dependências## Backend (Python)
 Acesse a pasta do backend:
 
-```bash
 cd backend
-```
 
-Crie um ambiente virtual:
+Crie e ative o ambiente virtual:
 
-```bash
 python -m venv venv
-```
 
-Ative o ambiente:
-
-```bash
-# Windows
+# Windows:
 .\venv\Scripts\activate
 
-# Linux / Mac
+# Linux / Mac:
 source venv/bin/activate
-```
 
 Instale as dependências necessárias:
 
-```bash
-pip install opencv-python numpy fastapi uvicorn python-multipart supabase python-dotenv
-```
+pip install flask flask-cors opencv-python numpy supabase python-dotenv
 
----
+------------------------------
+## ⚙️ Configuração## 1. Banco de Dados (Supabase)
+Na pasta backend/, crie um arquivo .env com suas credenciais:
 
-## Configuração do Banco de Dados
-
-1. Na pasta `backend/`, crie um arquivo chamado `.env`.
-2. Adicione suas credenciais do Supabase:
-
-```
-SUPABASE_URL=https://supabase.co
+SUPABASE_URL=https://seu-projeto.supabase.co
 SUPABASE_KEY=sua-chave-anon-public
-```
 
----
+## 2. Frontend (React Native)
+Acesse a pasta mobile-app e instale os pacotes:
 
-## Frontend (React Native com Expo)
-
-Acesse a pasta do aplicativo:
-
-```bash
-cd mobile-app
-```
-
-Instale as dependências:
-
-```bash
 npm install
-```
-
-Instale as bibliotecas adicionais necessárias:
-
-```bash
 npx expo install expo-camera expo-image-picker axios
-```
 
----
+------------------------------
+## 🛠️ Como Executar## 1. Iniciar o Backend
+Dentro da pasta backend com a venv ativa:
 
-## Como Executar o Projeto
+python main.py
 
-### 1. Iniciar o Backend
+A API estará disponível em: http://localhost:8000
+## 2. Iniciar o Aplicativo
+Dentro da pasta mobile-app:
 
-```bash
-cd backend
-# Certifique-se de que a venv está ativa
-
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-A API estará disponível em:
-
-```
-http://localhost:8000
-```
-
----
-
-### 2. Iniciar o Aplicativo
-
-```bash
-cd mobile-app
 npx expo start
+
+Pressione a para abrir no emulador Android.
+------------------------------
+## 📡 Comunicação com a API
+Para o emulador Android acessar o servidor local, utilize o IP especial:
+
+* No Emulador: http://10.0.2
+* O uso de localhost não funciona dentro do emulador.
+
+------------------------------
+## 📋 Observações Técnicas
+
+* Backend: Organizado em camadas. O CartaoScanner (OpenCV) reside em services, enquanto a persistência de dados utiliza o cliente supabase configurado em src/config.
+* Processamento: O backend realiza o alinhamento da imagem (Warp Perspective) e a detecção de marcações por limiar dinâmico de pixels.
+
+------------------------------
+Desenvolvido para fins educacionais.
 ```
-
-Após iniciar, pressione:
-
-```
-a
-```
-
-para abrir o aplicativo no emulador Android.
-
----
-
-## Comunicação com a API
-
-Para que o aplicativo consiga acessar o backend rodando localmente, utilize o seguinte endereço:
-
-```
-http://10.0.2.2:8000
-```
-
-O uso de `localhost` não funcionará dentro do emulador Android.
-
----
-
-## Requisitos
-
-- Node.js (versão LTS)
-- Python 3.x
-- Android Studio (para emulador Android)
-- Conta no Supabase (com as tabelas configuradas)
-- VS Code ou outro editor de código
-
----
-
-## Observações
-
-O backend é responsável por:
-
-- Processamento das imagens utilizando OpenCV
-- Comunicação com o banco de dados (Supabase)
-- Armazenamento e consulta de dados (turmas, gabaritos e notas)
-
-O aplicativo mobile:
-
-- Captura a imagem do cartão resposta
-- Envia para a API
-- Recebe e exibe os dados processados
-
----
-
-## Licença
-
-Projeto desenvolvido para fins educacionais.

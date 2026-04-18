@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import math
-import utils
+import src.services.utils as utils
 
 class CartaoScanner:
     def __init__(self, total_questoes, gabarito, alternativas=5):
