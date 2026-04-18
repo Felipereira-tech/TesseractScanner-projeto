@@ -1,23 +1,23 @@
-import firebase_admin
-from firebase_admin import credentials, firestore, storage
+import os
+from dotenv import load_dotenv
+from supabase import create_client, Client
 
-# --- VARIÁVEIS DE AMBIENTE / CONFIGURAÇÃO ---
-FIREBASE_CREDENTIALS_PATH = "firebase-service-account.json"
-STORAGE_BUCKET = "SEU_PROJETO.appspot.com" # Substitua pelo ID real do seu Storage
+load_dotenv()
 
-# Variável global para garantir que o app inicialize apenas uma vez
-_firebase_app = None
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
-def get_firebase_clients():
-    global _firebase_app
-    if not _firebase_app:
-        try:
-            cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
-            _firebase_app = firebase_admin.initialize_app(cred, {
-                'storageBucket': STORAGE_BUCKET
-            })
-        except ValueError:
-            # Caso o app já tenha sido inicializado em outro escopo
-            _firebase_app = firebase_admin.get_app()
-            
-    return firestore.client(), storage.bucket()
+_supabase_client: Client = None
+
+def get_supabase_client() -> Client:
+
+    global _supabase_client
+    if _supabase_client is None:
+        if not SUPABASE_URL or not SUPABASE_KEY:
+            raise ValueError("As variáveis SUPABASE_URL e SUPABASE_KEY não foram encontradas no .env")
+        
+        _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        
+    return _supabase_client
+
+supabase = get_supabase_client()

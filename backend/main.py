@@ -2,11 +2,10 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uuid
 
-# Importações dos módulos separados
-from config import get_firebase_clients
+from config import supabase
 from scanner import CartaoScanner
 
-app = FastAPI(title="API de Correção Kyros")
+app = FastAPI(title="API de Correção Tesseract")
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,12 +15,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Inicializa as conexões (ocorre apenas na primeira chamada)
-db, bucket = get_firebase_clients()
-
 def converter_gabarito(gabarito_raw):
-    """ Garante que o gabarito vindo do banco seja uma lista de inteiros """
     mapa_letras = {'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4}
+    if isinstance(gabarito_raw, str):
+        gabarito_raw = list(gabarito_raw.upper())
+    
     gabarito_formatado = []
     for ans in gabarito_raw:
         if isinstance(ans, str) and ans.upper() in mapa_letras:
@@ -30,73 +28,77 @@ def converter_gabarito(gabarito_raw):
             gabarito_formatado.append(int(ans))
     return gabarito_formatado
 
-
 @app.post("/corrigir-cartao/")
 async def corrigir_cartao(
-    prova_id: str = Form(...),
-    turma_id: str = Form(...), # Alterado de aluno_id para turma_id
+    prova_id: int = Form(...),
+    nome_aluno: str = Form(...),
     file: UploadFile = File(...)
 ):
     try:
         if not file.content_type.startswith('image/'):
             raise HTTPException(status_code=400, detail="Arquivo inválido. Envie uma imagem.")
 
-        # 1. Busca os metadados da Prova
-        prova_ref = db.collection("provas").document(prova_id).get()
-        if not prova_ref.exists:
+        prova_res = supabase.table("provas").select("*").eq("id", prova_id).maybe_single().execute()
+        if not prova_res.data:
             raise HTTPException(status_code=404, detail="Prova não encontrada no sistema.")
         
-        dados_prova = prova_ref.to_dict()
-        gabarito_raw = dados_prova.get("gabarito") 
-        total_questoes = dados_prova.get("total_questoes", len(gabarito_raw))
-        alternativas = dados_prova.get("alternativas", 5)
+        dados_prova = prova_res.data
+        total_questoes = dados_prova.get("quantidade_questoes")
 
-        if not gabarito_raw or len(gabarito_raw) != total_questoes:
-            raise HTTPException(status_code=400, detail="Inconsistência no gabarito salvo.")
-
+        gabarito_res = supabase.table("gabarito").select("respostas").eq("id_prova", prova_id).maybe_single().execute()
+        if not gabarito_res.data:
+            raise HTTPException(status_code=404, detail="Gabarito oficial não encontrado para esta prova.")
+        
+        gabarito_raw = gabarito_res.data.get("respostas")
         gabarito_int = converter_gabarito(gabarito_raw)
 
-        # 2. Inicia o Scanner Modular e Processa a Imagem
         contents = await file.read()
         scanner = CartaoScanner(
             total_questoes=total_questoes, 
             gabarito=gabarito_int, 
-            alternativas=alternativas
+            alternativas=5 
         )
         
         try:
             acertos, respostas_marcadas, img_buffer = scanner.processar(contents)
         except ValueError as ve:
-            # Captura os erros específicos do OpenCV (iluminação, bordas, etc)
             raise HTTPException(status_code=422, detail=str(ve))
 
-        # 3. Upload da Imagem Corrigida
-        nome_arquivo = f"correcoes/{turma_id}/{prova_id}_{uuid.uuid4().hex}.jpg"
-        blob = bucket.blob(nome_arquivo)
-        blob.upload_from_string(img_buffer.tobytes(), content_type='image/jpeg')
-        blob.make_public()
-        url_imagem = blob.public_url
-
-        # 4. Persistência de Resultados na Coleção da Turma
-        resultado_db = {
-            "turma_id": turma_id,
-            "prova_id": prova_id,
-            "acertos": int(acertos),
-            "total_questoes": total_questoes,
-            "respostas_marcadas": respostas_marcadas,
-            "imagem_correcao_url": url_imagem,
-            "data_correcao": firestore.SERVER_TIMESTAMP
-        }
+        caminho_storage = f"{prova_id}/{nome_aluno}_{uuid.uuid4().hex}.jpg"
         
-        # Salva o resultado indexado pela turma
-        db.collection("resultados_turmas").add(resultado_db)
+        try:
+            storage_res = supabase.storage.from_("correcoes").upload(
+                path=caminho_storage,
+                file=img_buffer.tobytes(),
+                file_options={"content-type": "image/jpeg"}
+            )
+            url_imagem = supabase.storage.from_("correcoes").get_public_url(caminho_storage)
+        except Exception as e:
+            print(f"Erro no storage: {e}")
+            url_imagem = None 
+
+        supabase.table("gabarito_alunos").insert({
+            "nome_aluno": nome_aluno,
+            "id_turma": dados_prova.get("id_turma"),
+            "respostas": str(respostas_marcadas)
+        }).execute()
+
+        nota_final = (acertos / total_questoes) * 10
+        resultado_nota = {
+            "nome_aluno": nome_aluno,
+            "id_prova": prova_id,
+            "acertos": acertos,
+            "nota": round(nota_final, 2)
+        }
+        supabase.table("notas").insert(resultado_nota).execute()
 
         return {
             "status": "sucesso",
-            "nota": acertos,
-            "total_questoes": total_questoes,
+            "aluno": nome_aluno,
+            "acertos": acertos,
+            "nota": round(nota_final, 2),
             "respostas_lidas": respostas_marcadas,
-            "imagem_processada": url_imagem
+            "imagem_url": url_imagem
         }
 
     except HTTPException as he:
