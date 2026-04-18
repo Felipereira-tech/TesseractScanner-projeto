@@ -1,6 +1,6 @@
 # Tesseract - Scanner de Cartão Resposta
 
-Este projeto consiste em um aplicativo Android desenvolvido com React Native integrado a um backend em Python utilizando OpenCV. O objetivo é capturar imagens de cartões resposta, processá-las e retornar automaticamente os resultados.
+Este projeto consiste em um aplicativo Android desenvolvido com React Native integrado a um backend em Python utilizando OpenCV e Supabase. O objetivo é capturar imagens de cartões resposta, processá-las, gerenciar dados via banco de dados e retornar automaticamente os resultados.
 
 ---
 
@@ -16,8 +16,13 @@ Estrutura esperada:
 
 ```
 tesseract/
-├── backend/
-├── mobile-app/
+├── backend/              # API Python, OpenCV e conexão com Supabase
+│   ├── .env              # Chaves de acesso (NÃO enviar para o Git)
+│   ├── config.py         # Configuração do cliente Supabase
+│   ├── main.py           # Rotas da API FastAPI
+│   └── venv/             # Ambiente virtual
+├── mobile-app/           # Aplicativo React Native (Expo)
+└── README.md
 ```
 
 ---
@@ -51,12 +56,24 @@ source venv/bin/activate
 Instale as dependências necessárias:
 
 ```bash
-pip install opencv-python numpy fastapi uvicorn python-multipart
+pip install opencv-python numpy fastapi uvicorn python-multipart supabase python-dotenv
 ```
 
 ---
 
-### Frontend (React Native com Expo)
+## Configuração do Banco de Dados
+
+1. Na pasta `backend/`, crie um arquivo chamado `.env`.
+2. Adicione suas credenciais do Supabase:
+
+```
+SUPABASE_URL=https://supabase.co
+SUPABASE_KEY=sua-chave-anon-public
+```
+
+---
+
+## Frontend (React Native com Expo)
 
 Acesse a pasta do aplicativo:
 
@@ -84,7 +101,7 @@ npx expo install expo-camera expo-image-picker axios
 
 ```bash
 cd backend
-.\venv\Scripts\activate
+# Certifique-se de que a venv está ativa
 
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
@@ -131,13 +148,24 @@ O uso de `localhost` não funcionará dentro do emulador Android.
 - Node.js (versão LTS)
 - Python 3.x
 - Android Studio (para emulador Android)
+- Conta no Supabase (com as tabelas configuradas)
 - VS Code ou outro editor de código
 
 ---
 
 ## Observações
 
-O backend é responsável pelo processamento das imagens utilizando OpenCV. O aplicativo mobile realiza a captura da imagem e envia para a API, que retorna os dados processados.
+O backend é responsável por:
+
+- Processamento das imagens utilizando OpenCV
+- Comunicação com o banco de dados (Supabase)
+- Armazenamento e consulta de dados (turmas, gabaritos e notas)
+
+O aplicativo mobile:
+
+- Captura a imagem do cartão resposta
+- Envia para a API
+- Recebe e exibe os dados processados
 
 ---
 
