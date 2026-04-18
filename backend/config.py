@@ -1,3 +1,5 @@
+#CONEXÃO COM O BANCO DE DADOS SUPABASE
+
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client

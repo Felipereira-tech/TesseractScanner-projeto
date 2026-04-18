@@ -1,3 +1,5 @@
+#BACKEND DA API, TODA A LÓGICA PODE SER ENCONTRADA AQUI, INCLUINDO A CONEXÃO COM O SUPABASE E O USO DO SCANNER PARA CORRIGIR OS CARTÕES
+
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uuid
