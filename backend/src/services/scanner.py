@@ -1,3 +1,5 @@
+# PARTE DA LEITURA COMPUTACIONAL 
+
 import cv2
 import numpy as np
 import math
