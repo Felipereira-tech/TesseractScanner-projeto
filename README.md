@@ -63,7 +63,8 @@ A API estará disponível em: http://localhost:8000
 ## 2. Iniciar o Aplicativo
 Dentro da pasta mobile-app:
 
-npx expo start
+npx expo
+
 
 Pressione a para abrir no emulador Android.
 ------------------------------
