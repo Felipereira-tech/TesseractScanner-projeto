@@ -1,28 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import { HeaderBackButton } from '@react-navigation/elements';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import Header from '@/components/header';
-import { DISCIPLINA_OPTIONS, getDisciplinaIconColor, type Disciplina } from '@/constants/disciplinas';
+import { useGabaritos } from '@/context/GabaritosContext';
 
 type Alternativa = 'A' | 'B' | 'C' | 'D' | 'E';
 
 const ALTERNATIVAS: Alternativa[] = ['A', 'B', 'C', 'D', 'E'];
-const MIN_QUESTOES = 10;
+const MIN_QUESTOES = 50;
 const MAX_QUESTOES = 90;
-const DEFAULT_QUESTOES = 10;
-const QUESTOES_OPTIONS = Array.from({ length: 9 }, (_, index) => (index + 1) * 10);
+const DEFAULT_QUESTOES = 50;
+const QUESTOES_OPTIONS = Array.from({ length: 5 }, (_, index) => 50 + (index * 10));
 
 function createEmptyAnswers(total: number): Array<Alternativa | null> {
   return Array.from({ length: total }, () => null);
@@ -30,13 +22,16 @@ function createEmptyAnswers(total: number): Array<Alternativa | null> {
 
 export default function CriarGabaritoScreen() {
   const router = useRouter();
+  const { editId } = useLocalSearchParams<{ editId?: string }>();
 
+  const { addGabarito, updateGabarito, gabaritos } = useGabaritos();
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [nomeProva, setNomeProva] = useState('');
-  const [disciplina, setDisciplina] = useState<Disciplina>('matematica');
+  const [descricaoProva, setDescricaoProva] = useState('');
   const [numeroQuestoes, setNumeroQuestoes] = useState(DEFAULT_QUESTOES);
   const [respostas, setRespostas] = useState<Array<Alternativa | null>>(createEmptyAnswers(DEFAULT_QUESTOES));
 
-  const accentColor = useMemo(() => getDisciplinaIconColor(disciplina), [disciplina]);
+  const accentColor = '#7C3AED';
 
   useEffect(() => {
     if (numeroQuestoes <= 0) {
@@ -57,6 +52,26 @@ export default function CriarGabaritoScreen() {
     });
   }, [numeroQuestoes]);
 
+  useEffect(() => {
+    if (!editId) {
+      setEditingId(null);
+      return;
+    }
+
+    const gabaritoParaEditar = gabaritos.find((item) => item.id === editId);
+
+    if (!gabaritoParaEditar) {
+      setEditingId(null);
+      return;
+    }
+
+    setEditingId(editId);
+    setNomeProva(gabaritoParaEditar.titulo);
+    setDescricaoProva(gabaritoParaEditar.descricao);
+    setNumeroQuestoes(gabaritoParaEditar.questoes);
+    setRespostas(gabaritoParaEditar.respostas);
+  }, [editId, gabaritos]);
+
   const selectAlternativa = (index: number, alternativa: Alternativa) => {
     setRespostas((prev) => {
       const next = [...prev];
@@ -66,8 +81,9 @@ export default function CriarGabaritoScreen() {
   };
 
   const resetForm = () => {
+    setEditingId(null);
     setNomeProva('');
-    setDisciplina('matematica');
+    setDescricaoProva('');  
     setNumeroQuestoes(DEFAULT_QUESTOES);
     setRespostas(createEmptyAnswers(DEFAULT_QUESTOES));
   };
@@ -106,8 +122,30 @@ export default function CriarGabaritoScreen() {
       return;
     }
 
+    if (editingId) {
+      updateGabarito(editingId, {
+        titulo: nomeTratado,
+        descricao: descricaoProva.trim() || `Gabarito com ${numeroQuestoes} questoes`,
+        questoes: numeroQuestoes,
+        respostas: respostas as Alternativa[],
+      });
+
+      resetForm();
+      Alert.alert('Gabarito atualizado', `O gabarito "${nomeTratado}" foi atualizado.`, [
+        { text: 'OK', onPress: () => router.replace('/gabaritos') },
+      ]);
+      return;
+    }
+
+    addGabarito({
+      titulo: nomeTratado,
+      descricao: descricaoProva.trim() || `Gabarito com ${numeroQuestoes} questoes`,
+      questoes: numeroQuestoes,
+      respostas: respostas as Alternativa[],
+    });
+
     resetForm();
-    Alert.alert('Gabarito salvo', `O gabarito "${nomeTratado}" foi preparado com sucesso.`, [
+    Alert.alert('Gabarito salvo', `O gabarito "${nomeTratado}" foi salvo com sucesso.`, [
       { text: 'OK', onPress: () => router.replace('/gabaritos') },
     ]);
   };
@@ -115,9 +153,9 @@ export default function CriarGabaritoScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Header
-        title="Criar Gabarito"
-        subtitle="Preencha os dados e marque as respostas"
-        brand={<HeaderBackButton onPress={() => router.back()} />}
+        title={editingId ? 'Editar Gabarito' : 'Criar Gabarito'}
+        subtitle={editingId ? 'Altere os dados e salve as mudanças' : 'Preencha os dados e marque as respostas'}
+        brand={<HeaderBackButton onPress={() => router.push('/gabaritos')} />}
       />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -136,20 +174,14 @@ export default function CriarGabaritoScreen() {
           </View>
 
           <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel}>Disciplina</Text>
-            <View style={styles.selectWrapper}>
-              <Picker
-                selectedValue={disciplina}
-                onValueChange={(itemValue) => setDisciplina(itemValue as Disciplina)}
-                mode="dropdown"
-                dropdownIconColor={accentColor}
-                style={styles.select}
-              >
-                {DISCIPLINA_OPTIONS.map((item) => (
-                  <Picker.Item key={item.value} label={item.label} value={item.value} />
-                ))}
-              </Picker>
-            </View>
+            <Text style={styles.fieldLabel}>Descricao</Text>
+            <TextInput
+              value={descricaoProva}
+              onChangeText={setDescricaoProva}
+              placeholder="Ex: Gabarito do Simulado"
+              placeholderTextColor="#9CA3AF"
+              style={styles.input}
+            />
           </View>
 
           <View style={styles.fieldGroup}>
@@ -169,6 +201,20 @@ export default function CriarGabaritoScreen() {
             </View>
             <Text style={styles.fieldHint}>Selecione entre {MIN_QUESTOES} e {MAX_QUESTOES} questoes.</Text>
           </View>
+        </View>
+
+        <View style={styles.actionsRow}>
+          <TouchableOpacity style={styles.secondaryButton} onPress={handleLimpar}>
+            <Text style={styles.secondaryButtonText}>Limpar</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.secondaryButton, { borderColor: accentColor }]} onPress={handleAleatorio}>
+            <Text style={[styles.secondaryButtonText, { color: accentColor }]}>Aleatorio</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: accentColor }]} onPress={handleSalvar}>
+            <Text style={styles.primaryButtonText}>Salvar</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.card}>
@@ -205,20 +251,8 @@ export default function CriarGabaritoScreen() {
           )}
         </View>
 
-        <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.secondaryButton} onPress={handleLimpar}>
-            <Text style={styles.secondaryButtonText}>Limpar</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.secondaryButton, { borderColor: accentColor }]} onPress={handleAleatorio}>
-            <Text style={[styles.secondaryButtonText, { color: accentColor }]}>Aleatorio</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: accentColor }]} onPress={handleSalvar}>
-            <Text style={styles.primaryButtonText}>Salvar</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
+      
     </SafeAreaView>
   );
 }
@@ -253,6 +287,12 @@ const styles = StyleSheet.create({
   },
   fieldGroup: {
     marginBottom: 12,
+  },
+   emptyText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    paddingHorizontal: 16,
   },
   fieldLabel: {
     fontSize: 14,
