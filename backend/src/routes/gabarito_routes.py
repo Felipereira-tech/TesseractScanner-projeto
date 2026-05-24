@@ -17,7 +17,7 @@ async def gabarito_cadastrar(
 async def gabarito_corrigir(
     prova_id: int = Form(...),
     nome_aluno: str = Form(...),
-    id_turma: int = Form(...),
+    id_turma: int = Form(1),# Define os parâmetros esperados na requisição, onde prova_id é um inteiro obrigatório, nome_aluno é uma string obrigatória e id_turma é um inteiro opcional com valor padrão 1, todos recebidos como dados de formulário
     file: UploadFile = File(...)# Define os parâmetros esperados na requisição, onde prova_id é um inteiro obrigatório, nome_aluno é uma string obrigatória, id_turma é um inteiro obrigatório e file é um arquivo obrigatório recebido como parte da requisição multipart/form-data
 ):
     return await GabaritoController.corrigir(prova_id, nome_aluno, id_turma, file)# Chama o método corrigir do GabaritoController, passando os parâmetros recebidos, e retorna a resposta da operação de correção do gabarito

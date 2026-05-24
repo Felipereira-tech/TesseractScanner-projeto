@@ -20,6 +20,8 @@ class GabaritoController:
     @staticmethod
     async def corrigir(prova_id: int, nome_aluno: str, id_turma: int, file: UploadFile):# Define um método assíncrono para corrigir um gabarito, recebendo o ID da prova, o nome do aluno, o ID da turma e o arquivo de imagem enviado pelo usuário. O método processa a imagem, corrige o gabarito e retorna os resultados ou mensagens de erro apropriadas.
         try:
+            # LOG TEMPORÁRIO
+            print(f">>> prova_id={prova_id} | nome_aluno={nome_aluno} | id_turma={id_turma} | file={file.filename}")
             if not file.content_type or not file.content_type.startswith("image/"):
                 raise ValueError("Envie uma imagem valida em JPG ou PNG.")
 
@@ -49,3 +51,5 @@ class GabaritoController:
         except Exception as e:
             logger.exception("Erro ao corrigir gabarito: %s", e)
             return JSONResponse({"status": "erro", "mensagem": "Erro interno no processamento da imagem."}, status_code=500)
+        
+    

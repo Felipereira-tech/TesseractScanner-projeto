@@ -11,11 +11,11 @@ import { useGabaritos } from '@/context/GabaritosContext';
 export default function GabaritosScreen() {
   const navigation = useNavigation();
   const router = useRouter();
-  const { gabaritos, loading, erro, recarregar } = useGabaritos();
+  const { gabaritos, loading, erro, recarregar } = useGabaritos();// Acessa o contexto dos gabaritos para obter os dados, o status de carregamento, possíveis erros e a função para recarregar os gabaritos
 
   useEffect(() => {
     recarregar();
-  }, []);
+  }, []);// Efeito para recarregar os gabaritos quando a tela for focada, garantindo que os dados estejam sempre atualizados
 
   return (
     <SafeAreaView style={styles.container}>
@@ -49,17 +49,19 @@ export default function GabaritosScreen() {
             key={item.id}
             titulo={item.nome_prova}
             descricao={item.descricao ?? ''}
-            questoes={item.quantidade_quest}
-            data={new Date(item.created_at).toLocaleDateString('pt-BR')}
-            onPress={() => router.push({
-              pathname: '/scanner',
-              params: { prova_id: item.id, nome_prova: item.nome_prova },
-            })}
+            questoes={item.quantidade_questoes}
+            data={item.created_at ? new Date(item.created_at).toLocaleDateString('pt-BR') : '—'}
+            onPress={() => {
+              router.push({
+                pathname: '/(tabs)/scanner',
+                params: { prova_id: item.id, nome_prova: item.nome_prova },
+              });
+            }}
           />
         ))}
       </ScrollView>
     </SafeAreaView>
-  );
+  );// Estrutura principal da tela de gabaritos, incluindo o cabeçalho, a lista de gabaritos e os estados de carregamento e erro
 }
 
 const styles = StyleSheet.create({

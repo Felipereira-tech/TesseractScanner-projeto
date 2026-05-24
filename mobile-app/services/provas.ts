@@ -13,8 +13,21 @@ export type Prova = {
   id: number;
   nome_prova: string;
   descricao: string;
-  quantidade_quest: number;
-  created_at: string;
+  quantidade_questoes: number;
+  created_at?: string;
+};
+
+export type Turma = {
+  id: number;
+  nome_turma: string;
+  ano_letivo: number;
+};
+
+export const TurmasAPI = {
+  listar: async (): Promise<Turma[]> => {
+    const res = await api.get('/api/turmas');
+    return res.data.dados ?? [];
+  },
 };
 
 export const ProvasAPI = {

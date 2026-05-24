@@ -1,4 +1,4 @@
-# PARTE DA LEITURA COMPUTACIONAL 
+# scanner.py
 
 import cv2
 import numpy as np
@@ -92,7 +92,7 @@ class CartaoScanner:
 
     def _extrair_bolinhas(self, imgThresh):
         """ Divide a imagem respeitando as colunas físicas do cartão """
-        num_cols = math.ceil(self.questions / self.q_per_col)
+        num_cols = math.ceil(self.questions / self.q_per_col)# Calcula o número de colunas necessárias com base na quantidade total de questões e na configuração de questões por coluna
         col_width = self.width_img // num_cols
         boxes = []
         

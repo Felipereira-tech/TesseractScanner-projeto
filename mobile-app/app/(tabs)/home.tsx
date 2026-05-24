@@ -371,12 +371,14 @@ export default function HomeScreen() {
                       onPress={() => router.push('/gabaritos')}
                     >
                       <View style={styles.savedItemText}>
-                        <Text style={styles.savedItemTitle}>{gabarito.titulo}</Text>
+                        <Text style={styles.savedItemTitle}>{gabarito.nome_prova}</Text>
                         <Text style={styles.savedItemDesc}>{gabarito.descricao}</Text>
                       </View>
                       <View style={styles.savedItemMeta}>
-                        <Text style={styles.savedBadgeText}>{gabarito.questoes} questões</Text>
-                        <Text style={styles.savedItemDate}>{gabarito.data}</Text>
+                        <Text style={styles.savedBadgeText}>{gabarito.quantidade_questoes } questões</Text>
+                        <Text style={styles.savedItemDate}>
+                          {gabarito.created_at ? new Date(gabarito.created_at).toLocaleDateString('pt-BR') : '—'}
+                        </Text>
                       </View>
                     </TouchableOpacity>
                   ))}

@@ -22,17 +22,17 @@ export function GabaritosProvider({ children }: { children: React.ReactNode }) {
   const [erro, setErro] = useState<string | null>(null);// Estado para armazenar os gabaritos, o status de carregamento e possíveis erros
 
   const recarregar = useCallback(async () => {
-    setLoading(true);
-    setErro(null);
-    try {
-      const dados = await ProvasAPI.listar();
-      setGabaritos(dados);
-    } catch (e) {
-      setErro('Erro ao carregar gabaritos.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  setLoading(true);
+  setErro(null);
+  try {
+    const dados = await ProvasAPI.listar();
+    setGabaritos(dados);
+  } catch (e) {
+    setErro('Erro ao carregar gabaritos.');
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   useEffect(() => {
     recarregar();
