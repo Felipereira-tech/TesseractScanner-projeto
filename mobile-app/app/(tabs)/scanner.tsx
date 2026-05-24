@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { SafeAreaView, StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Picker } from '@react-native-picker/picker';
 import { HeaderBackButton } from '@react-navigation/elements';
@@ -7,22 +8,20 @@ import { useRouter } from 'expo-router';
 
 import Header from '@/components/header';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { getDisciplinaIconColor, type Disciplina } from '@/constants/disciplinas';
-
-const DISCIPLINAS: Array<{ label: string; value: Disciplina }> = [
-  { label: 'Matemática', value: 'matematica' },
-  { label: 'Português', value: 'portugues' },
-  { label: 'História', value: 'historia' },
-  { label: 'Geografia', value: 'geografia' },
-  { label: 'Ciências', value: 'ciencias' },
-];
+import { useGabaritos } from '@/context/GabaritosContext';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [selectedDiscipline, setSelectedDiscipline] = useState<Disciplina>('matematica');
   const [permission, requestPermission] = useCameraPermissions();
+  const { gabaritos } = useGabaritos();
+  const [selectedGabaritoId, setSelectedGabaritoId] = useState<string | null>(null);
 
-  const accentColor = useMemo(() => getDisciplinaIconColor(selectedDiscipline), [selectedDiscipline]);
+  const selectedGabarito = useMemo(
+    () => gabaritos.find((item) => item.id === selectedGabaritoId) ?? null,
+    [gabaritos, selectedGabaritoId]
+  );
+
+  const accentColor = '#7C3AED';
 
   useEffect(() => {
     if (!permission) {
@@ -30,34 +29,61 @@ export default function HomeScreen() {
     }
   }, [permission, requestPermission]);
 
+  useEffect(() => {
+    if (gabaritos.length === 0) {
+      setSelectedGabaritoId(null);
+      return;
+    }
+
+    setSelectedGabaritoId((current) =>
+      current && gabaritos.some((item) => item.id === current)
+        ? current
+        : gabaritos[0].id
+    );
+  }, [gabaritos]);
+
   return (
     <SafeAreaView style={styles.container}>
       <Header
         title="Escanear Cartão"
-        subtitle="Selecione a matéria e inicie a leitura"
+        subtitle="Escolha o gabarito salvo para iniciar o scan"
         brand={<HeaderBackButton onPress={() => router.back()} />}
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View style={styles.heroCard}>
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Selecione o Gabrito</Text>
-            <View style={[styles.pickerWrapper, { borderColor: `${accentColor}33` }]}>
-              <Picker
-                selectedValue={selectedDiscipline}
-                onValueChange={(itemValue) => setSelectedDiscipline(itemValue)}
-                mode="dropdown"
-                dropdownIconColor={accentColor}
-                style={styles.picker}
-              >
-                {DISCIPLINAS.map((discipline) => (
-                  <Picker.Item key={discipline.value} label={discipline.label} value={discipline.value} />
-                ))}
-              </Picker>
-            </View>
+            <Text style={styles.sectionLabel}>Selecione o gabarito salvo</Text>
+            {gabaritos.length > 0 ? (
+              <View style={[styles.pickerWrapper, { borderColor: `${accentColor}33` }]}> 
+                <Picker
+                  selectedValue={selectedGabaritoId ?? ''}
+                  onValueChange={(itemValue) => setSelectedGabaritoId(String(itemValue))}
+                  mode="dropdown"
+                  dropdownIconColor={accentColor}
+                  style={styles.picker}
+                >
+                  {gabaritos.map((gabarito) => (
+                    <Picker.Item
+                      key={gabarito.id}
+                      label={`${gabarito.titulo} • ${gabarito.questoes} questões`}
+                      value={gabarito.id}
+                    />
+                  ))}
+                </Picker>
+              </View>
+            ) : (
+              <Text style={styles.placeholderText}>Nenhum gabarito salvo. Crie um gabarito na página Meus Gabaritos antes de escanear.</Text>
+            )}
           </View>
-        </View>
 
+          {selectedGabarito ? (
+            <View style={styles.selectedCard}>
+              <Text style={styles.selectedCardTitle}>{selectedGabarito.titulo}</Text>
+              <Text style={styles.selectedCardSubtitle}>{selectedGabarito.descricao}</Text>
+            </View>
+          ) : null}
+        </View>
         <View style={styles.cameraCard}>
           <View style={[styles.cameraFrame, { borderColor: `${accentColor}33` }]}>
             {permission?.granted ? (
@@ -67,7 +93,7 @@ export default function HomeScreen() {
               </>
             ) : (
               <View style={styles.cameraFallback}>
-                <IconSymbol name="description" size={34} color={accentColor} />
+                <IconSymbol name="qrcode.viewfinder" size={34} color={accentColor} />
                 <Text style={styles.cameraTitle}>{permission ? 'Permissão da câmera necessária' : 'Ativando câmera...'}</Text>
                 <Text style={styles.cameraSubtitle}>
                   {permission
@@ -164,6 +190,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#111827',
+  },
+  placeholderText: {
+    fontSize: 14,
+    color: '#6B7280',
+    lineHeight: 20,
+  },
+  selectedCard: {
+    width: '100%',
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  selectedCardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 6,
+  },
+  selectedCardSubtitle: {
+    fontSize: 14,
+    color: '#4B5563',
+    lineHeight: 20,
   },
   pickerWrapper: {
     width: '100%',

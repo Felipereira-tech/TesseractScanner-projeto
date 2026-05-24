@@ -6,6 +6,7 @@ import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useGabaritos } from '@/context/GabaritosContext';
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -177,7 +178,69 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6b7280',
   },
-
+  savedListWrapper: {
+    width: '100%',
+    minHeight: 130,
+    maxHeight: 320,
+  },
+  savedList: {
+    width: '100%',
+  },
+  savedListContent: {
+    paddingVertical: 8,
+    gap: 12,
+  },
+  savedItem: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  savedItemText: {
+    flex: 1,
+    marginRight: 12,
+  },
+  savedItemTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  savedItemDesc: {
+    fontSize: 13,
+    color: '#6b7280',
+    lineHeight: 18,
+  },
+  savedItemMeta: {
+    alignItems: 'flex-end',
+  },
+  savedBadgeText: {
+    fontSize: 12,
+    color: '#4f46e5',
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  savedItemDate: {
+    fontSize: 11,
+    color: '#9ca3af',
+  },
+  savedEmptyCard: {
+    backgroundColor: '#f3f4f6',
+    padding: 18,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  savedEmptyText: {
+    color: '#6b7280',
+    fontSize: 14,
+    textAlign: 'center',
+  },
 });
 
 function ActivityItem({ icon, title, desc }: any) {
@@ -196,6 +259,7 @@ function ActivityItem({ icon, title, desc }: any) {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { gabaritos } = useGabaritos();
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -288,26 +352,37 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.sectionTitle}>ATIVIDADE RECENTES</Text>
-              <View style={styles.activityCard}>
-                  <ActivityItem
-                    icon={<ScanLine color="#16a34a" size={18} />}
-                    title="Turma 8A - Matemática"
-                    desc="15 alunos corrigidos • há 2 horas"
-                  />
-
-                  <ActivityItem
-                    icon={<FileText color="#2563eb" size={18} />}
-                    title="Prova de História"
-                    desc="Gabarito criado • há 1 dia"
-                  />
-
-                  <ActivityItem
-                    icon={<ScanLine color="#7c3aed" size={18} />}
-                    title="Turma 7B - Português"
-                    desc="23 alunos corrigidos • há 3 dias"
-                  />
+            <Text style={styles.sectionTitle}>Gabaritos Salvos</Text>
+            <View style={styles.savedListWrapper}>
+              {gabaritos.length === 0 ? (
+                <View style={styles.savedEmptyCard}>
+                  <Text style={styles.savedEmptyText}>Nenhum gabarito salvo ainda. Crie um gabarito para começar.</Text>
                 </View>
+              ) : (
+                <ScrollView
+                  style={styles.savedList}
+                  contentContainerStyle={styles.savedListContent}
+                  nestedScrollEnabled
+                >
+                  {gabaritos.map((gabarito) => (
+                    <TouchableOpacity
+                      key={gabarito.id}
+                      style={styles.savedItem}
+                      onPress={() => router.push('/gabaritos')}
+                    >
+                      <View style={styles.savedItemText}>
+                        <Text style={styles.savedItemTitle}>{gabarito.titulo}</Text>
+                        <Text style={styles.savedItemDesc}>{gabarito.descricao}</Text>
+                      </View>
+                      <View style={styles.savedItemMeta}>
+                        <Text style={styles.savedBadgeText}>{gabarito.questoes} questões</Text>
+                        <Text style={styles.savedItemDate}>{gabarito.data}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
+            </View>
 
         </ScrollView>
 

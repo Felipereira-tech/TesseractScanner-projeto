@@ -44,6 +44,7 @@ const styles = StyleSheet.create({
   textContainer: {
     flex: 1,
     flexDirection: 'column',
+    paddingVertical: 4,
   },
   title: {
     fontSize: 20,

@@ -1,82 +1,69 @@
-/*gabaritos.tsx*/
 
-import { SafeAreaView, StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
+/*gabaritos.tsx*/
+import { SafeAreaView, StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import Header from '@/components/header';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { GabaritoCard } from '@/components/ui/gabaritoCard';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
+import { useGabaritos } from '@/context/GabaritosContext';
 
 
 export default function HomeScreen() {
   const navigation = useNavigation();
   const router = useRouter();
+  const { gabaritos, removeGabarito } = useGabaritos();
+
+  const handleGabaritoOptions = (id: string, titulo: string) => {
+    Alert.alert(titulo, undefined, [
+      {
+        text: 'Editar',
+        onPress: () => router.push(`/criar-gabarito?editId=${encodeURIComponent(id)}`),
+      },
+      {
+        text: 'Excluir',
+        style: 'destructive',
+        onPress: () => removeGabarito(id),
+      },
+      {
+        text: 'Cancelar',
+        style: 'cancel',
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <View>
         <Header
           title="Meus Gabaritos"
-          subtitle=''
-          brand={<HeaderBackButton onPress={() => navigation.goBack()} />}
+          subtitle=""
+          brand={<HeaderBackButton onPress={() => router.push('/home')} />}
           rightAction={
             <TouchableOpacity style={styles.rightAction} onPress={() => router.push('/criar-gabarito')}>
-            <IconSymbol name="doc.text" size={20} color="#fff" />
-            <Text style={styles.rightActionText}>Novo</Text>
+              <IconSymbol name="description" size={20} color="#fff" />
+              <Text style={styles.rightActionText}>Novo</Text>
             </TouchableOpacity>
           }
         />
       </View>
 
       <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-        <GabaritoCard
-          titulo="Gabarito 1"
-          descricao="Descricao do gabarito 1"
-          questoes={30}
-          data="01/01/2024"
-          disciplina="geografia"
-        />
-
-        <GabaritoCard
-          titulo="Gabarito 1"
-          descricao="Descricao do gabarito 1"
-          questoes={30}
-          data="01/01/2024"
-          disciplina="matematica"
-        />
-
-        <GabaritoCard
-          titulo="Gabarito 1"
-          descricao="Descricao do gabarito 1"
-          questoes={30}
-          data="01/01/2024"
-          disciplina="portugues"
-        />
-
-        <GabaritoCard
-          titulo="Gabarito 1"
-          descricao="Descricao do gabarito 1"
-          questoes={30}
-          data="01/01/2024"
-          disciplina="geografia"
-        />
-
-        <GabaritoCard
-                  titulo="Gabarito 1"
-                  descricao="Descricao do gabarito 1"
-                  questoes={30}
-                  data="01/01/2024"
-                  disciplina="portugues"
-                />
-
-                <GabaritoCard
-                  titulo="Gabarito 1"
-                  descricao="Descricao do gabarito 1"
-                  questoes={30}
-                  data="01/01/2024"
-                  disciplina="geografia"
-                />
+        {gabaritos.length === 0 ? (
+          <Text style={styles.emptyText}>Nenhum gabarito salvo ainda. Clique em Novo para criar um.</Text>
+        ) : (
+          gabaritos.map((gabarito) => (
+            <GabaritoCard
+              key={gabarito.id}
+              titulo={gabarito.titulo}
+              descricao={gabarito.descricao}
+              questoes={gabarito.questoes}
+              data={gabarito.data}
+              onOptionsPress={() => handleGabaritoOptions(gabarito.id, gabarito.titulo)}
+            />
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -93,6 +80,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 24,
+  },
+  emptyText: {
+    color: '#6B7280',
+    fontSize: 16,
+    textAlign: 'center',
+    paddingHorizontal: 24,
+    marginTop: 20,
   },
   rightAction: {
     gap: 6,

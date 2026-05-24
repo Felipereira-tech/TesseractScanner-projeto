@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 
-import { Disciplina, getDisciplinaIconColor } from '@/constants/disciplinas';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 type GabaritoCardProps = {
@@ -8,12 +7,11 @@ type GabaritoCardProps = {
   descricao: string;
   questoes: number;
   data: string;
-  disciplina: Disciplina;
   onOptionsPress?: () => void;
 };
 
-export function GabaritoCard({ titulo, descricao, questoes, data, disciplina, onOptionsPress }: GabaritoCardProps) {
-  const iconColor = getDisciplinaIconColor(disciplina);
+export function GabaritoCard({ titulo, descricao, questoes, data, onOptionsPress }: GabaritoCardProps) {
+  const iconColor = '#7C3AED';
 
   return (
     <View style={styles.card}>
@@ -26,7 +24,7 @@ export function GabaritoCard({ titulo, descricao, questoes, data, disciplina, on
       </TouchableOpacity>
 
       <View style={styles.icon}>
-        <IconSymbol name="description" size={30} color={iconColor} />
+        <IconSymbol name="assignment.fill" size={30} color={iconColor} />
       </View>
       <View style={styles.cardContent}>
         <View style={styles.cardHeader}>
