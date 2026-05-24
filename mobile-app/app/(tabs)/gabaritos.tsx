@@ -1,3 +1,5 @@
+/*gabaritos.tsx*/
+
 import { SafeAreaView, StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import Header from '@/components/header';
 import { IconSymbol } from '@/components/ui/icon-symbol';
