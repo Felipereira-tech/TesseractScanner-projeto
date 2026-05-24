@@ -1,12 +1,11 @@
-from flask import request, jsonify
+from fastapi.responses import JSONResponse
 from src.services.provas_service import ProvaService
 
 class ProvaController:
     @staticmethod
-    def criar():
+    async def criar(dados: dict):
         try:
-            dados = request.json
             resultado = ProvaService.cadastrar_nova_prova(dados)
-            return jsonify({"status": "sucesso", "dados": resultado.data}), 201
+            return JSONResponse({"status": "sucesso", "dados": resultado.data}, status_code=201)
         except ValueError as e:
-            return jsonify({"status": "erro", "mensagem": str(e)}), 400
+            return JSONResponse({"status": "erro", "mensagem": str(e)}, status_code=400)

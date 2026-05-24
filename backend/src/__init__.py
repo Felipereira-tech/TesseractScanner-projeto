@@ -1,16 +1,21 @@
-from flask import Flask
-from flask_cors import CORS
-from src.routes.gabarito_routes import gabarito_bp
-from src.routes.scanner_route import scanner_bp
-from src.routes.provas_route import prova_bp
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from src.routes.gabarito_routes import router as gabarito_router
+from src.routes.scanner_route import router as scanner_router
+from src.routes.provas_route import router as provas_router
 
 def create_app():
-    app = Flask(__name__)
+    app = FastAPI()# Inicializa a aplicação FastAPI
     
-    CORS(app)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+     ) # Configura o middleware CORS para permitir requisições de qualquer origem, método e cabeçalho
+    
+    app.include_router(gabarito_router, prefix="/api")
+    app.include_router(scanner_router, prefix="/api")
+    app.include_router(provas_router, prefix= "/api")# Inclui os roteadores para as rotas de gabarito, scanner e provas, com o prefixo "api"
 
-    app.register_blueprint(scanner_bp, url_prefix='/api')
-    app.register_blueprint(prova_bp, url_prefix='/api')
-    app.register_blueprint(gabarito_bp, url_prefix='/api')
-    
-    return app
+    return app# Retorna a instância da aplicação FastAPI configurada    
