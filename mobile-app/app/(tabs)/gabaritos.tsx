@@ -1,6 +1,5 @@
-
-/*gabaritos.tsx*/
-import { SafeAreaView, StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { useEffect } from 'react';
+import { SafeAreaView, StyleSheet, View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import Header from '@/components/header';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { GabaritoCard } from '@/components/ui/gabaritoCard';
@@ -9,29 +8,14 @@ import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { useGabaritos } from '@/context/GabaritosContext';
 
-
-export default function HomeScreen() {
+export default function GabaritosScreen() {
   const navigation = useNavigation();
   const router = useRouter();
-  const { gabaritos, removeGabarito } = useGabaritos();
+  const { gabaritos, loading, erro, recarregar } = useGabaritos();
 
-  const handleGabaritoOptions = (id: string, titulo: string) => {
-    Alert.alert(titulo, undefined, [
-      {
-        text: 'Editar',
-        onPress: () => router.push(`/criar-gabarito?editId=${encodeURIComponent(id)}`),
-      },
-      {
-        text: 'Excluir',
-        style: 'destructive',
-        onPress: () => removeGabarito(id),
-      },
-      {
-        text: 'Cancelar',
-        style: 'cancel',
-      },
-    ]);
-  };
+  useEffect(() => {
+    recarregar();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -39,10 +23,10 @@ export default function HomeScreen() {
         <Header
           title="Meus Gabaritos"
           subtitle=""
-          brand={<HeaderBackButton onPress={() => router.push('/home')} />}
+          brand={<HeaderBackButton onPress={() => navigation.goBack()} />}
           rightAction={
             <TouchableOpacity style={styles.rightAction} onPress={() => router.push('/criar-gabarito')}>
-              <IconSymbol name="description" size={20} color="#fff" />
+              <IconSymbol name="doc.text" size={20} color="#fff" />
               <Text style={styles.rightActionText}>Novo</Text>
             </TouchableOpacity>
           }
@@ -50,43 +34,42 @@ export default function HomeScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-        {gabaritos.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhum gabarito salvo ainda. Clique em Novo para criar um.</Text>
-        ) : (
-          gabaritos.map((gabarito) => (
-            <GabaritoCard
-              key={gabarito.id}
-              titulo={gabarito.titulo}
-              descricao={gabarito.descricao}
-              questoes={gabarito.questoes}
-              data={gabarito.data}
-              onOptionsPress={() => handleGabaritoOptions(gabarito.id, gabarito.titulo)}
-            />
-          ))
+        {loading && <ActivityIndicator size="large" color="#7C3AED" />}
+
+        {erro && <Text style={{ color: 'red', textAlign: 'center' }}>{erro}</Text>}
+
+        {!loading && !erro && gabaritos.length === 0 && (
+          <Text style={{ color: '#6B7280', textAlign: 'center' }}>
+            Nenhum gabarito cadastrado ainda.
+          </Text>
         )}
+
+        {gabaritos.map((item) => (
+          <GabaritoCard
+            key={item.id}
+            titulo={item.nome_prova}
+            descricao={item.descricao ?? ''}
+            questoes={item.quantidade_quest}
+            data={new Date(item.created_at).toLocaleDateString('pt-BR')}
+            onPress={() => router.push({
+              pathname: '/scanner',
+              params: { prova_id: item.id, nome_prova: item.nome_prova },
+            })}
+          />
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-  },
+  container: { flex: 1, backgroundColor: '#F3F4F6' },
   listContent: {
     alignItems: 'center',
     gap: 12,
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 24,
-  },
-  emptyText: {
-    color: '#6B7280',
-    fontSize: 16,
-    textAlign: 'center',
-    paddingHorizontal: 24,
-    marginTop: 20,
   },
   rightAction: {
     gap: 6,
@@ -97,8 +80,5 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#7C3AED',
   },
-  rightActionText: {
-    color: '#ffffff',
-    fontWeight: '600',
-  },
+  rightActionText: { color: '#ffffff', fontWeight: '600' },
 });

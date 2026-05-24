@@ -1,69 +1,67 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
-
-export type Alternativa = 'A' | 'B' | 'C' | 'D' | 'E';
-
-export type Gabarito = {
-  id: string;
-  titulo: string;
-  descricao: string;
-  questoes: number;
-  data: string;
-  respostas: Alternativa[];
-};
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { ProvasAPI, type Prova, type Alternativa } from '@/services/provas';
 
 type GabaritosContextValue = {
-  gabaritos: Gabarito[];
-  addGabarito: (gabarito: Omit<Gabarito, 'id' | 'data'>) => void;
-  updateGabarito: (id: string, gabarito: Omit<Gabarito, 'id' | 'data'>) => void;
-  removeGabarito: (id: string) => void;
-  clearGabaritos: () => void;
-};
+  gabaritos: Prova[];
+  loading: boolean;
+  erro: string | null;
+  addGabarito: (dados: {
+    titulo: string;
+    descricao: string;
+    questoes: number;
+    respostas: Alternativa[];
+  }) => Promise<void>;
+  recarregar: () => Promise<void>;
+};// Contexto para gerenciar os gabaritos (provas) do usuário
 
-const GabaritosContext = createContext<GabaritosContextValue | undefined>(undefined);
+const GabaritosContext = createContext<GabaritosContextValue | undefined>(undefined);// Criação do provedor de contexto para os gabaritos
 
 export function GabaritosProvider({ children }: { children: React.ReactNode }) {
-  const [gabaritos, setGabaritos] = useState<Gabarito[]>([]);
+  const [gabaritos, setGabaritos] = useState<Prova[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);// Estado para armazenar os gabaritos, o status de carregamento e possíveis erros
 
-  const value = useMemo(
-    () => ({
-      gabaritos,
-      addGabarito: (gabarito: Omit<Gabarito, 'id' | 'data'>) => {
-        const agora = new Date();
-        const dataFormatada = agora.toLocaleDateString('pt-BR');
+  const recarregar = useCallback(async () => {
+    setLoading(true);
+    setErro(null);
+    try {
+      const dados = await ProvasAPI.listar();
+      setGabaritos(dados);
+    } catch (e) {
+      setErro('Erro ao carregar gabaritos.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-        setGabaritos((prev) => [
-          {
-            ...gabarito,
-            id: String(agora.getTime()),
-            data: dataFormatada,
-          },
-          ...prev,
-        ]);
-      },
-      updateGabarito: (id: string, gabarito: Omit<Gabarito, 'id' | 'data'>) => {
-        setGabaritos((prev) =>
-          prev.map((item) =>
-            item.id === id ? { ...item, ...gabarito } : item
-          )
-        );
-      },
-      removeGabarito: (id: string) => {
-        setGabaritos((prev) => prev.filter((item) => item.id !== id));
-      },
-      clearGabaritos: () => setGabaritos([]),
-    }),
-    [gabaritos]
+  useEffect(() => {
+    recarregar();
+  }, [recarregar]);// Efeito para carregar os gabaritos quando o componente for montado
+
+  const addGabarito = useCallback(async (dados: {
+    titulo: string;
+    descricao: string;
+    questoes: number;
+    respostas: Alternativa[];
+  }) => {
+    await ProvasAPI.criar({
+      nome: dados.titulo,
+      descricao: dados.descricao,
+      quantidade_questoes: dados.questoes,
+      respostas_raw: dados.respostas.join(','),
+    });
+    await recarregar();
+  }, [recarregar]);
+
+  return (
+    <GabaritosContext.Provider value={{ gabaritos, loading, erro, addGabarito, recarregar }}>
+      {children}
+    </GabaritosContext.Provider>// Fornece o contexto para os componentes filhos, permitindo que eles acessem os gabaritos e as funções para gerenciá-los
   );
-
-  return <GabaritosContext.Provider value={value}>{children}</GabaritosContext.Provider>;
 }
 
 export function useGabaritos() {
   const context = useContext(GabaritosContext);
-
-  if (!context) {
-    throw new Error('useGabaritos deve ser usado dentro de GabaritosProvider');
-  }
-
+  if (!context) throw new Error('useGabaritos deve ser usado dentro de GabaritosProvider');
   return context;
-}
+}// Hook personalizado para acessar o contexto dos gabaritos, garantindo que seja usado dentro do provedor adequado

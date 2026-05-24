@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 const host =
-  Constants.expoConfig?.hostUri?.split(':')[0];
+  Constants.expoConfig?.hostUri?.split(':')[0] ?? '192.168.0.26';
 
 export const API_BASE_URL = Platform.select({
   android: `http://${host}:8000`,
@@ -20,12 +20,12 @@ const api = axios.create({
 });
 
 export const endpoints = {
-  provas: '/provas',
-  gabaritos: '/gabaritos',
-  gabaritosCadastrar: '/gabaritos/cadastrar',
-  gabaritosCorrigir: '/gabaritos/corrigir',
-  corrigirDinamico: '/corrigir-dinamico',
-  corrigirCartao: '/corrigir-cartao',
+  provas: '/api/provas',
+  gabaritos: '/api/gabaritos',
+  gabaritosCadastrar: '/api/gabaritos/cadastrar',
+  gabaritosCorrigir: '/api/gabaritos/corrigir',
+  corrigirDinamico: '/api/corrigir-dinamico',
+  corrigirCartao: '/api/corrigir-cartao',
 };
 
 export default api;

@@ -9,3 +9,11 @@ class ProvaController:
             return JSONResponse({"status": "sucesso", "dados": resultado.data}, status_code=201)
         except ValueError as e:
             return JSONResponse({"status": "erro", "mensagem": str(e)}, status_code=400)
+    
+    @staticmethod
+    async def listar():
+        try:
+            resultado = ProvaService.listar_provas()
+            return JSONResponse({"status": "sucesso", "dados": resultado.data})
+        except Exception as e:
+            return JSONResponse({"status": "erro", "mensagem": str(e)}, status_code=500)

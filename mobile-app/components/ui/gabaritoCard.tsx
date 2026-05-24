@@ -1,3 +1,5 @@
+/* gabaritoCard.tsx */
+
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -7,14 +9,17 @@ type GabaritoCardProps = {
   descricao: string;
   questoes: number;
   data: string;
+  onPress?: () => void; 
   onOptionsPress?: () => void;
 };
 
-export function GabaritoCard({ titulo, descricao, questoes, data, onOptionsPress }: GabaritoCardProps) {
+
+
+export function GabaritoCard({ titulo, descricao, questoes, data, onPress, onOptionsPress }: GabaritoCardProps) {
   const iconColor = '#7C3AED';
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
       <TouchableOpacity
         style={styles.optionsButton}
         onPress={onOptionsPress}
@@ -40,7 +45,7 @@ export function GabaritoCard({ titulo, descricao, questoes, data, onOptionsPress
           <Text style={styles.footerDate}>{data}</Text>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

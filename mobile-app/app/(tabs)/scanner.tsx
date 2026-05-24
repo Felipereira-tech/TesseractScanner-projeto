@@ -1,111 +1,116 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useRef, useState } from 'react';
+import { SafeAreaView, StyleSheet, View, Text, ScrollView, Pressable, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { Picker } from '@react-native-picker/picker';
 import { HeaderBackButton } from '@react-navigation/elements';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import Header from '@/components/header';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useGabaritos } from '@/context/GabaritosContext';
+import api, { endpoints } from '@/app/api/axios';
 
-export default function HomeScreen() {
+export default function ScannerScreen() {
   const router = useRouter();
+  const { prova_id, nome_prova } = useLocalSearchParams<{ prova_id: string; nome_prova: string }>();
   const [permission, requestPermission] = useCameraPermissions();
-  const { gabaritos } = useGabaritos();
-  const [selectedGabaritoId, setSelectedGabaritoId] = useState<string | null>(null);
+  const [nomeAluno, setNomeAluno] = useState('');
+  const [loading, setLoading] = useState(false);
+  const cameraRef = useRef<CameraView>(null);
 
-  const selectedGabarito = useMemo(
-    () => gabaritos.find((item) => item.id === selectedGabaritoId) ?? null,
-    [gabaritos, selectedGabaritoId]
-  );
-
-  const accentColor = '#7C3AED';
-
-  useEffect(() => {
-    if (!permission) {
-      requestPermission();
-    }
-  }, [permission, requestPermission]);
-
-  useEffect(() => {
-    if (gabaritos.length === 0) {
-      setSelectedGabaritoId(null);
+  const handleProcessar = async () => {
+    if (!nomeAluno.trim()) {
+      Alert.alert('Nome obrigatório', 'Informe o nome do aluno antes de processar.');
       return;
     }
 
-    setSelectedGabaritoId((current) =>
-      current && gabaritos.some((item) => item.id === current)
-        ? current
-        : gabaritos[0].id
-    );
-  }, [gabaritos]);
+    if (!cameraRef.current) {
+      Alert.alert('Erro', 'Câmera não está pronta.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // 1. Captura a foto
+      const foto = await cameraRef.current.takePictureAsync({
+        quality: 0.8,
+        base64: false,
+      });
+
+      if (!foto?.uri) {
+        Alert.alert('Erro', 'Não foi possível capturar a imagem.');
+        return;
+      }
+
+      // 2. Monta o FormData
+      const form = new FormData();
+      form.append('prova_id', String(prova_id));
+      form.append('nome_aluno', nomeAluno.trim());
+      form.append('id_turma', '1'); // ajuste conforme seu fluxo
+      form.append('file', {
+        uri: foto.uri,
+        name: 'cartao.jpg',
+        type: 'image/jpeg',
+      } as any);
+
+      // 3. Envia ao backend
+      const res = await api.post(endpoints.gabaritosCorrigir, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      const { resultado, respostas_lidas, preview_correcao } = res.data;
+
+      // 4. Navega para tela de resultado
+      Alert.alert(
+        'Correção concluída',
+        `Aluno: ${nomeAluno}\nAcertos: ${resultado.acertos}/${resultado.total}\nNota: ${resultado.nota}`,
+      );
+
+    } catch (err: any) {
+      console.error(err);
+      Alert.alert('Erro', err?.response?.data?.mensagem ?? 'Erro ao processar o cartão.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <Header
-        title="Escanear Cartão"
-        subtitle="Escolha o gabarito salvo para iniciar o scan"
+        title={nome_prova ?? 'Escanear Cartão'}
+        subtitle="Posicione o cartão e informe o aluno"
         brand={<HeaderBackButton onPress={() => router.back()} />}
       />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        <View style={styles.heroCard}>
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Selecione o gabarito salvo</Text>
-            {gabaritos.length > 0 ? (
-              <View style={[styles.pickerWrapper, { borderColor: `${accentColor}33` }]}> 
-                <Picker
-                  selectedValue={selectedGabaritoId ?? ''}
-                  onValueChange={(itemValue) => setSelectedGabaritoId(String(itemValue))}
-                  mode="dropdown"
-                  dropdownIconColor={accentColor}
-                  style={styles.picker}
-                >
-                  {gabaritos.map((gabarito) => (
-                    <Picker.Item
-                      key={gabarito.id}
-                      label={`${gabarito.titulo} • ${gabarito.questoes} questões`}
-                      value={gabarito.id}
-                    />
-                  ))}
-                </Picker>
-              </View>
-            ) : (
-              <Text style={styles.placeholderText}>Nenhum gabarito salvo. Crie um gabarito na página Meus Gabaritos antes de escanear.</Text>
-            )}
-          </View>
 
-          {selectedGabarito ? (
-            <View style={styles.selectedCard}>
-              <Text style={styles.selectedCardTitle}>{selectedGabarito.titulo}</Text>
-              <Text style={styles.selectedCardSubtitle}>{selectedGabarito.descricao}</Text>
-            </View>
-          ) : null}
+        {/* Campo nome do aluno */}
+        <View style={styles.card}>
+          <Text style={styles.sectionLabel}>Nome do aluno</Text>
+          <TextInput
+            value={nomeAluno}
+            onChangeText={setNomeAluno}
+            placeholder="Ex: Ana Silva"
+            placeholderTextColor="#9CA3AF"
+            style={styles.input}
+          />
         </View>
-        <View style={styles.cameraCard}>
-          <View style={[styles.cameraFrame, { borderColor: `${accentColor}33` }]}>
-            {permission?.granted ? (
-              <>
-                <CameraView style={styles.cameraPreview} facing="back" />
 
-              </>
+        {/* Câmera */}
+        <View style={styles.cameraCard}>
+          <View style={styles.cameraFrame}>
+            {permission?.granted ? (
+              <CameraView ref={cameraRef} style={styles.cameraPreview} facing="back" />
             ) : (
               <View style={styles.cameraFallback}>
-                <IconSymbol name="qrcode.viewfinder" size={34} color={accentColor} />
-                <Text style={styles.cameraTitle}>{permission ? 'Permissão da câmera necessária' : 'Ativando câmera...'}</Text>
-                <Text style={styles.cameraSubtitle}>
-                  {permission
-                    ? 'Permita o acesso para visualizar a câmera e escanear o gabarito.'
-                    : 'Solicitando acesso à câmera para iniciar o preview.'}
+                <IconSymbol name="description" size={34} color="#7C3AED" />
+                <Text style={styles.cameraTitle}>
+                  {permission ? 'Permissão necessária' : 'Ativando câmera...'}
                 </Text>
-
-                {permission && !permission.granted ? (
-                  <Pressable style={[styles.permissionButton, { backgroundColor: accentColor }]} onPress={requestPermission}>
+                {permission && !permission.granted && (
+                  <Pressable style={styles.permissionButton} onPress={requestPermission}>
                     <Text style={styles.permissionButtonText}>Permitir câmera</Text>
                   </Pressable>
-                ) : null}
+                )}
               </View>
             )}
           </View>
@@ -118,221 +123,63 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        <Pressable style={[styles.primaryButton, { backgroundColor: accentColor }]} onPress={() => {}}>
-          <Text style={styles.primaryButtonText}>Processar Scan</Text>
+        <Pressable
+          style={[styles.primaryButton, loading && { opacity: 0.6 }]}
+          onPress={handleProcessar}
+          disabled={loading}
+        >
+          {loading
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={styles.primaryButtonText}>Processar Scan</Text>
+          }
         </Pressable>
+
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F7F8FC',
+  container: { flex: 1, backgroundColor: '#F7F8FC' },
+  content: { flexGrow: 1, paddingHorizontal: 16, paddingTop: 24, paddingBottom: 28, gap: 16 },
+  card: {
+    width: '100%', borderRadius: 24, backgroundColor: '#FFFFFF',
+    padding: 20, shadowColor: '#000', shadowOpacity: 0.08,
+    shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 4,
   },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: 16,
-    paddingTop: 24,
-    paddingBottom: 28,
-    gap: 16,
-  },
-  heroCard: {
-    width: '100%',
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
-  },
-  iconBadge: {
-    width: 60,
-    height: 60,
-    borderRadius: 18,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 14,
-  },
-  kicker: {
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    color: '#6B7280',
-    marginBottom: 8,
-  },
-  heroTitle: {
-    fontSize: 22,
-    lineHeight: 28,
-    fontWeight: '800',
-    color: '#111827',
-    textAlign: 'center',
-  },
-  heroDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#4B5563',
-    textAlign: 'center',
-    marginTop: 10,
-  },
-  section: {
-    gap: 10,
-    width: '100%',
-    marginTop: 18,
-  },
-  sectionLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  placeholderText: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
-  },
-  selectedCard: {
-    width: '100%',
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 18,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  selectedCardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 6,
-  },
-  selectedCardSubtitle: {
-    fontSize: 14,
-    color: '#4B5563',
-    lineHeight: 20,
-  },
-  pickerWrapper: {
-    width: '100%',
-    borderRadius: 16,
-    borderWidth: 1,
-    overflow: 'hidden',
-    backgroundColor: '#FFF',
-  },
-  picker: {
-    width: '100%',
+  sectionLabel: { fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 8 },
+  input: {
+    borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 12,
+    backgroundColor: '#FFFFFF', paddingHorizontal: 12,
+    paddingVertical: 10, fontSize: 14, color: '#111827',
   },
   cameraCard: {
-    width: '100%',
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    width: '100%', borderRadius: 24, backgroundColor: '#FFFFFF',
+    padding: 16, shadowColor: '#000', shadowOpacity: 0.08,
+    shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 4,
   },
   cameraFrame: {
-    minHeight: 230,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    backgroundColor: '#F9FAFB',
-    overflow: 'hidden',
-    position: 'relative',
+    minHeight: 300, borderRadius: 20, borderWidth: 1,
+    borderStyle: 'dashed', borderColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB', overflow: 'hidden',
   },
-  cameraPreview: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  cameraOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'flex-start',
-    justifyContent: 'flex-end',
-    padding: 14,
-    backgroundColor: 'rgba(17, 24, 39, 0.08)',
-  },
-  cameraOverlayBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  cameraOverlayText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
+  cameraPreview: { ...StyleSheet.absoluteFillObject },
   cameraFallback: {
-    minHeight: 230,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 24,
+    minHeight: 300, alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 20, paddingVertical: 24,
   },
-  cameraTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
-    marginTop: 14,
-    textAlign: 'center',
-  },
-  cameraSubtitle: {
-    fontSize: 14,
-    color: '#4B5563',
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 20,
-  },
-  permissionButton: {
-    marginTop: 14,
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  permissionButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  tipCard: {
-    width: '100%',
-    borderRadius: 20,
-    backgroundColor: '#EEF2FF',
-    padding: 16,
-  },
-  tipTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#1E3A8A',
-    marginBottom: 6,
-  },
-  tipText: {
-    fontSize: 14,
-    color: '#3730A3',
-    lineHeight: 20,
-  },
+  cameraTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginTop: 14, textAlign: 'center' },
+  permissionButton: { marginTop: 14, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#7C3AED' },
+  permissionButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  tipCard: { width: '100%', borderRadius: 20, backgroundColor: '#EEF2FF', padding: 16 },
+  tipTitle: { fontSize: 14, fontWeight: '700', color: '#1E3A8A', marginBottom: 6 },
+  tipText: { fontSize: 14, color: '#3730A3', lineHeight: 20 },
   primaryButton: {
-    width: '100%',
-    borderRadius: 18,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    width: '100%', borderRadius: 18, paddingVertical: 16,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#7C3AED', shadowColor: '#000',
+    shadowOpacity: 0.12, shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 }, elevation: 4,
   },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
+  primaryButtonText: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
 });
