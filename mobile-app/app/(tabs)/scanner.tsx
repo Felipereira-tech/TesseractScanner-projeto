@@ -200,8 +200,8 @@ const styles = StyleSheet.create({
     shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 4,
   },
   cameraFrame: {
-  height: 600,
-  width: '65%',
+  height: 660,
+  width: '60%',
   alignSelf: 'center',
   borderRadius: 20,
   borderWidth: 1,
@@ -212,8 +212,8 @@ const styles = StyleSheet.create({
   },
   cameraPreview: { ...StyleSheet.absoluteFillObject },
   cameraFallback: {
-  height: 600,
-  width: '65%',
+  height: 660,
+  width: '60%',
   alignSelf: 'center',
   alignItems: 'center',
   justifyContent: 'center',
