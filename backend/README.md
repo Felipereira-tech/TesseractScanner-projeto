@@ -879,6 +879,9 @@ curl -X POST http://localhost:8000/api/debug/scanner \
 -F "file=@/caminho/para/imagem.jpg"
 ```
 
+
+
+
 # COMO EXECUTAR O PROGRAMA COMPLETO:
 
 `1 -` Abrir dois terminais e acessar as pastas `mobile-app` e `backend` separadamente (com `venv` ativo)
