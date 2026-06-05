@@ -198,3 +198,81 @@ class GabaritoService:
             raise ValueError("Formato de respostas invalido.")
 
         return respostas
+    
+    @staticmethod
+    def processar_coluna(prova_id, coluna, imagem_bytes):
+        import math, base64
+        prova = GabaritoService._buscar_prova_ou_erro(prova_id)
+        total_questoes = prova["quantidade_questoes"]
+        q_per_col = 24
+        num_colunas = math.ceil(total_questoes / q_per_col)
+
+        if coluna < 0 or coluna >= num_colunas:
+            raise ValueError(f"Coluna {coluna} inválida. Esta prova tem {num_colunas} colunas.")
+
+        # Quantas questões nesta coluna
+        inicio = coluna * q_per_col
+        fim = min(inicio + q_per_col, total_questoes)
+        questoes_nesta_coluna = fim - inicio
+
+        # Scanner processa só as questões desta coluna
+        # Gabarito fictício (não é usado para comparação aqui)
+        gabarito_dummy = [0] * questoes_nesta_coluna
+        scanner = CartaoScanner(
+            total_questoes=questoes_nesta_coluna,
+            gabarito=gabarito_dummy,
+            alternativas=5,
+        )
+        _, respostas_lidas, imagem_corrigida = scanner.processar(imagem_bytes)
+
+        preview = base64.b64encode(imagem_corrigida).decode("utf-8")
+
+        return {
+            "respostas_coluna": respostas_lidas,
+            "preview_coluna": f"data:image/jpeg;base64,{preview}",
+        }
+        
+    @staticmethod
+    def finalizar_correcao(prova_id, nome_aluno, id_turma, respostas_completas):
+        prova = GabaritoService._buscar_prova_ou_erro(prova_id)
+        total_questoes = prova["quantidade_questoes"]
+
+        if not nome_aluno:
+            raise ValueError("Informe o nome do aluno.")
+
+        gabarito_resposta = GabaritoModel.buscar_por_prova_id(prova_id)
+        if not gabarito_resposta.data:
+            raise ValueError("Gabarito oficial não encontrado para esta prova.")
+
+        gabarito_oficial = GabaritoService._normalizar_respostas(
+            gabarito_resposta.data.get("respostas")
+        )
+
+        if len(respostas_completas) != total_questoes:
+            raise ValueError(f"Esperado {total_questoes} respostas, recebido {len(respostas_completas)}.")
+
+        acertos = sum(
+            1 for i in range(total_questoes)
+            if respostas_completas[i] == gabarito_oficial[i]
+        )
+        nota = round((acertos / total_questoes) * 10, 2)
+
+        GabaritoModel.salvar_respostas_aluno({
+            "nome_aluno": nome_aluno,
+            "id_turma": id_turma,
+            "id_prova": prova_id,
+            "respostas": respostas_completas,
+        })
+        GabaritoModel.salvar_nota({
+            "nome_aluno": nome_aluno,
+            "id_prova": prova_id,
+            "acertos": acertos,
+            "nota": nota,
+        })
+
+        return {
+            "acertos": acertos,
+            "total": total_questoes,
+            "nota": nota,
+            "respostas_lidas": respostas_completas,
+        }

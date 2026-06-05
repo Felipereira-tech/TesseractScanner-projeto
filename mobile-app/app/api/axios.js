@@ -34,6 +34,8 @@ export const endpoints = {
   gabaritos: '/api/gabaritos',
   gabaritosCadastrar: '/api/gabaritos/cadastrar',
   gabaritosCorrigir: '/api/gabaritos/corrigir',
+  gabaritosColuna: '/api/gabaritos/coluna',
+  gabaritosFinalizar: '/api/gabaritos/finalizar',
   corrigirDinamico: '/api/corrigir-dinamico',
   corrigirCartao: '/api/corrigir-cartao',
 };

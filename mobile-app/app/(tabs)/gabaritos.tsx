@@ -39,7 +39,7 @@ export default function GabaritosScreen() {
         {erro && <Text style={{ color: 'red', textAlign: 'center' }}>{erro}</Text>}
 
         {!loading && !erro && gabaritos.length === 0 && (
-          <Text style={{ color: '#6B7280', textAlign: 'center' }}>
+          <Text style={{ color: '#bec3ce', textAlign: 'center' }}>
             Nenhum gabarito cadastrado ainda.
           </Text>
         )}
@@ -51,12 +51,14 @@ export default function GabaritosScreen() {
             descricao={item.descricao ?? ''}
             questoes={item.quantidade_questoes}
             data={item.created_at ? new Date(item.created_at).toLocaleDateString('pt-BR') : '—'}
-            onPress={() => {
-              router.push({
-                pathname: '/(tabs)/scanner',
-                params: { prova_id: item.id, nome_prova: item.nome_prova },
-              });
-            }}
+            onPress={() => router.push({
+              pathname: '/(tabs)/scanner',
+              params: {
+                prova_id: item.id,
+                nome_prova: item.nome_prova,
+                quantidade_questoes: item.quantidade_questoes,
+              },
+            })}
           />
         ))}
       </ScrollView>

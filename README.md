@@ -52,6 +52,7 @@ Acesse a pasta mobile-app e instale os pacotes:
 
 npm install
 npx expo install expo-camera expo-image-picker axios
+npx expo install expo-image-manipulator
 
 ------------------------------
 ## 🛠️ Como Executar## 1. Iniciar o Backend

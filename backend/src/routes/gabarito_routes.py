@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Form, File, UploadFile
+from fastapi import APIRouter, Form, File, UploadFile, Body
 from src.controllers.gabarito_controller import GabaritoController
+from typing import List
 
 router = APIRouter()# Cria um roteador FastAPI para definir as rotas relacionadas ao gabarito
 
@@ -21,3 +22,15 @@ async def gabarito_corrigir(
     file: UploadFile = File(...)# Define os parâmetros esperados na requisição, onde prova_id é um inteiro obrigatório, nome_aluno é uma string obrigatória, id_turma é um inteiro obrigatório e file é um arquivo obrigatório recebido como parte da requisição multipart/form-data
 ):
     return await GabaritoController.corrigir(prova_id, nome_aluno, id_turma, file)# Chama o método corrigir do GabaritoController, passando os parâmetros recebidos, e retorna a resposta da operação de correção do gabarito
+
+@router.post("/gabaritos/coluna")
+async def gabrito_coluna(
+    prova_id: int = Form(...),
+    coluna: int = Form(...),
+    file: UploadFile = File(...)
+):
+    return await GabaritoController.processar_coluna(prova_id, coluna, file)
+
+@router.post("/gabaritos/finalizar")
+async def gabarito_finalizar(payload: dict = Body(...)):
+    return await GabaritoController.finalizar(payload)

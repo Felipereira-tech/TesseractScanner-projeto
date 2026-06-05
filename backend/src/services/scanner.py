@@ -15,7 +15,7 @@ class CartaoScanner:
         self.q_per_col = 24  # Quantidade de questões por coluna na folha
         self.width_img = 700  # Largura padrão para a qual a imagem será redimensionada
         self.height_img = 900 # Altura padrão para a qual a imagem será redimensionada
-        self.min_area = 5000  # Área mínima em pixels para detectar o contorno do cartão
+        self.min_area = 1000000  # Área mínima em pixels para detectar o contorno do cartão
         self.header_pct = 0.04 # Porcentagem da altura reservada para o cabeçalho
         self.numero_width_px = 117 # Largura em pixels reservada para o número da questão (ignorado na leitura)
         self.limiar_pct = 0.25 # % mínima de pixels pretos (preenchidos) para validar uma marcação

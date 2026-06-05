@@ -52,3 +52,56 @@ class GabaritoController:
             logger.exception("Erro ao corrigir gabarito: %s", e)
             return JSONResponse({"status": "erro", "mensagem": "Erro interno no processamento da imagem."}, status_code=500)
     
+    @staticmethod 
+    async def processar_coluna(prova_id: int, coluna: int, file: UploadFile):
+        try:
+            print(f">>> Processar_coluna | prova_id={prova_id} | coluna={coluna}")
+            if not file.content_type or not file.content_type.startswith("image/"):
+                raise ValueError("Envie uma imagem válida em JPG ou PNG")
+            
+            contents = await file.read()
+            
+            resultado = GabaritoService.processar_coluna(prova_id, coluna, contents)
+            
+            return JSONResponse({
+                "status": "sucesso",
+                "coluna": coluna,
+                "respostas_coluna": resultado["respostas_coluna"],
+                "preview_coluna": resultado["preview_coluna"],  
+            }, status_code=200)
+        
+        except ValueError as e:
+            print(f">>> VALOR ERROR: {str(e)}")
+            return JSONResponse({"status": "erro", "mensagem":str(e)}, status_code=422)
+        except Exception as e:
+            logger.exception("Erro ao processar coluna: %s", e)
+            return JSONResponse({"status": "erro", "mensagem": "Erro interno no processamento da coluna."}, status_code=500)
+        
+    @staticmethod
+    async def finalizar(payload: dict):
+        try:
+            prova_id = payload.get("prova_id")
+            nome_aluno = payload.get("nome_aluno")
+            id_turma = payload.get("id_turma")
+            respostas_completas = payload.get("respostas")
+
+            resultado = GabaritoService.finalizar_correcao(
+                prova_id, nome_aluno, id_turma, respostas_completas
+            )
+
+            return JSONResponse({
+                "status": "sucesso",
+                "aluno": nome_aluno,
+                "resultado": {
+                    "acertos": resultado["acertos"],
+                    "total": resultado["total"],
+                    "nota": resultado["nota"],
+                },
+                "respostas_lidas": resultado["respostas_lidas"],
+            }, status_code=200)
+
+        except ValueError as e:
+            return JSONResponse({"status": "erro", "mensagem": str(e)}, status_code=422)
+        except Exception as e:
+            logger.exception("Erro ao finalizar correção: %s", e)
+            return JSONResponse({"status": "erro", "mensagem": "Erro interno ao finalizar correção."}, status_code=500)
