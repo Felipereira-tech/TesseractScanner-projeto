@@ -16,4 +16,3 @@ async def corrigir(
     contents = await file.read()
     resultado = processar_correcao(prova_id, nome_aluno, contents)# Lê o conteúdo do arquivo enviado e chama a função processar_correcao, passando os parâmetros recebidos, para realizar a correção do cartão de resposta  
     return JSONResponse(resultado)# Retorna o resultado da correção como uma resposta JSON para o cliente que fez a requisição, contendo as informações sobre a correção do cartão de resposta. 
-    
