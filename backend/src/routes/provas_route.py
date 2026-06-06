@@ -11,3 +11,12 @@ async def prova_criar(request: Request):# Define uma rota POST para criar uma no
 @router.get("/provas")
 async def prova_listar():# Define uma rota GET para listar todas as provas disponíveis
     return await ProvaController.listar()# Chama o método listar do ProvaController, que retorna uma lista de provas, e retorna essa lista como resposta da requisição GET.
+
+@router.put("/provas/{prova_id}")
+async def prova_atualizar(prova_id: int, request: Request):
+    dados = await request.json()
+    return await ProvaController.atualizar(prova_id, dados)
+
+@router.delete("/provas/{prova_id}")
+async def prova_deletar(prova_id: int):
+    return await ProvaController.deletar(prova_id)

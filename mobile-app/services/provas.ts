@@ -33,26 +33,43 @@ export const TurmasAPI = {
 export const ProvasAPI = {
   criar: async (payload: ProvaPayload) => {
     const provaRes = await api.post(endpoints.provas, {
-  nome_prova: payload.nome,
-  descricao: payload.descricao,
-  quantidade_questoes: payload.quantidade_questoes,
-  });// Cria a prova primeiro para obter o ID necessário para criar o gabarito
+      nome_prova: payload.nome,
+      descricao: payload.descricao,
+      quantidade_questoes: payload.quantidade_questoes,
+    }); // Cria a prova primeiro para obter o ID necessário para criar o gabarito
 
-    const prova_id = provaRes.data.dados[0].id;// Em seguida, cria o gabarito associado à prova usando o ID obtido
+    const prova_id = provaRes.data.dados[0].id; // Em seguida, cria o gabarito associado à prova usando o ID obtido
 
-    const form = new FormData();// O campo 'prova_id' é necessário para associar o gabarito à prova correta
+    const form = new FormData(); // O campo 'prova_id' é necessário para associar o gabarito à prova correta
     form.append('prova_id', String(prova_id));
-    form.append('respostas_raw', payload.respostas_raw);// O campo 'respostas_raw' deve ser uma string formatada de acordo com o esperado pela API (ex: "A,B,C,D,E")
+    form.append('respostas_raw', payload.respostas_raw); // O campo 'respostas_raw' deve ser uma string formatada de acordo com o esperado pela API (ex: "A,B,C,D,E")
 
     await api.post(endpoints.gabaritosCadastrar, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
-    });// Retorna o ID da prova criada para que a interface possa navegar para a tela de detalhes do gabarito, se necessário
+    }); // Retorna o ID da prova criada para que a interface possa navegar para a tela de detalhes do gabarito, se necessário
 
     return prova_id;
   },
 
+  atualizar: async (provaId: number, payload: ProvaPayload & { respostas_raw?: string }) => {
+    return api.put(`${endpoints.provas}/${provaId}`, {
+      nome_prova: payload.nome,
+      descricao: payload.descricao,
+      quantidade_questoes: payload.quantidade_questoes,
+      respostas_raw: payload.respostas_raw,
+    });
+  },
+
+  deletar: async (provaId: number) => {
+    return api.delete(`${endpoints.provas}/${provaId}`);
+  },
+
   listar: async (): Promise<Prova[]> => {
     const res = await api.get(endpoints.provas);
-    return res.data.dados ?? [];// A API deve retornar um array de provas no campo 'dados', mas caso retorne null ou undefined, garantimos que a função sempre retorne um array (mesmo que vazio)
+    return res.data.dados ?? []; // A API deve retornar um array de provas no campo 'dados', mas caso retorne null ou undefined, garantimos que a função sempre retorne um array (mesmo que vazio)
+  },
+  buscarGabarito: async (provaId: number) => {
+    const res = await api.get(`${endpoints.gabaritos}/${provaId}`);
+    return res.data.dados ?? null;
   },
 };

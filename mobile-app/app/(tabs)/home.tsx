@@ -323,13 +323,13 @@ export default function HomeScreen() {
                 </View>
               </TouchableOpacity>
 
-              <TouchableOpacity style={{ width: '50%' }}>
+              <TouchableOpacity style={{ width: '50%' }} onPress={() => router.push('/resultados')}>
                 <View style={styles.gridCard}>
                   <View style={styles.iconBoxGreen}>
                     <BarChart3 color="#059669" size={24} />
                   </View>
-                  <Text style={styles.gridTitle}>Estatísticas</Text>
-                  <Text style={styles.gridDesc}>Análise</Text>
+                  <Text style={styles.gridTitle}>Resultados</Text>
+                  <Text style={styles.gridDesc}>Ver Notas</Text>
                 </View>
               </TouchableOpacity>
 
@@ -352,43 +352,13 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.sectionTitle}>Gabaritos Salvos</Text>
-            <View style={styles.savedListWrapper}>
-              {gabaritos.length === 0 ? (
-                <View style={styles.savedEmptyCard}>
-                  <Text style={styles.savedEmptyText}>Nenhum gabarito salvo ainda. Crie um gabarito para começar.</Text>
-                </View>
-              ) : (
-                <ScrollView
-                  style={styles.savedList}
-                  contentContainerStyle={styles.savedListContent}
-                  nestedScrollEnabled
-                >
-                  {gabaritos.map((gabarito) => (
-                    <TouchableOpacity
-                      key={gabarito.id}
-                      style={styles.savedItem}
-                      onPress={() => router.push('/gabaritos')}
-                    >
-                      <View style={styles.savedItemText}>
-                        <Text style={styles.savedItemTitle}>{gabarito.nome_prova}</Text>
-                        <Text style={styles.savedItemDesc}>{gabarito.descricao}</Text>
-                      </View>
-                      <View style={styles.savedItemMeta}>
-                        <Text style={styles.savedBadgeText}>{gabarito.quantidade_questoes } questões</Text>
-                        <Text style={styles.savedItemDate}>
-                          {gabarito.created_at ? new Date(gabarito.created_at).toLocaleDateString('pt-BR') : '—'}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              )}
-            </View>
+            
+            {/* Foi removido da tela inicial o container de "Gabaritos Salvos" */}
 
         </ScrollView>
 
-        <StatusBar style='auto' hidden={true}/>
+        
+        
 
       </LinearGradient>
     </SafeAreaView>

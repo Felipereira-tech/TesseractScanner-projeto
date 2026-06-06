@@ -11,6 +11,13 @@ type GabaritosContextValue = {
     questoes: number;
     respostas: Alternativa[];
   }) => Promise<void>;
+  updateGabarito: (provaId: number, dados: {
+    titulo: string;
+    descricao: string;
+    questoes: number;
+    respostas: Alternativa[];
+  }) => Promise<void>;
+  deleteGabarito: (provaId: number) => Promise<void>;
   recarregar: () => Promise<void>;
 };// Contexto para gerenciar os gabaritos (provas) do usuário
 
@@ -53,8 +60,28 @@ export function GabaritosProvider({ children }: { children: React.ReactNode }) {
     await recarregar();
   }, [recarregar]);
 
+  const updateGabarito = useCallback(async (provaId: number, dados: {
+    titulo: string;
+    descricao: string;
+    questoes: number;
+    respostas: Alternativa[];
+  }) => {
+    await ProvasAPI.atualizar(provaId, {
+      nome: dados.titulo,
+      descricao: dados.descricao,
+      quantidade_questoes: dados.questoes,
+      respostas_raw: dados.respostas.join(','),
+    });
+    await recarregar();
+  }, [recarregar]);
+
+  const deleteGabarito = useCallback(async (provaId: number) => {
+    await ProvasAPI.deletar(provaId);
+    await recarregar();
+  }, [recarregar]);
+
   return (
-    <GabaritosContext.Provider value={{ gabaritos, loading, erro, addGabarito, recarregar }}>
+    <GabaritosContext.Provider value={{ gabaritos, loading, erro, addGabarito, updateGabarito, deleteGabarito, recarregar }}>
       {children}
     </GabaritosContext.Provider>// Fornece o contexto para os componentes filhos, permitindo que eles acessem os gabaritos e as funções para gerenciá-los
   );

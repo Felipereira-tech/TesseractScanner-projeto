@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { SafeAreaView, StyleSheet, View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { Alert, SafeAreaView, StyleSheet, View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import Header from '@/components/header';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { GabaritoCard } from '@/components/ui/gabaritoCard';
@@ -11,7 +11,56 @@ import { useGabaritos } from '@/context/GabaritosContext';
 export default function GabaritosScreen() {
   const navigation = useNavigation();
   const router = useRouter();
-  const { gabaritos, loading, erro, recarregar } = useGabaritos();// Acessa o contexto dos gabaritos para obter os dados, o status de carregamento, possíveis erros e a função para recarregar os gabaritos
+  const { gabaritos, loading, erro, recarregar, deleteGabarito } = useGabaritos();// Acessa o contexto dos gabaritos para obter os dados, o status de carregamento, possíveis erros e a função para recarregar os gabaritos
+
+  const handleDelete = async (provaId: number) => {
+    Alert.alert(
+      'Excluir gabarito',
+      'Tem certeza de que deseja excluir este gabarito?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteGabarito(provaId);
+              Alert.alert('Excluído', 'Gabarito removido com sucesso.');
+            } catch (error) {
+              Alert.alert('Erro', 'Não foi possível excluir o gabarito. Tente novamente.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleOptions = (item: typeof gabaritos[number]) => {
+    Alert.alert(
+      'Ações do gabarito',
+      undefined,
+      [
+        {
+          text: 'Editar',
+          onPress: () => {
+            router.push(
+              `/criar-gabarito?id=${item.id}&nome_prova=${encodeURIComponent(item.nome_prova)}&descricao=${encodeURIComponent(item.descricao ?? '')}&quantidade_questoes=${item.quantidade_questoes}`
+            );
+          },
+        },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: () => handleDelete(item.id),
+        },
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
   useEffect(() => {
     recarregar();
@@ -51,14 +100,10 @@ export default function GabaritosScreen() {
             descricao={item.descricao ?? ''}
             questoes={item.quantidade_questoes}
             data={item.created_at ? new Date(item.created_at).toLocaleDateString('pt-BR') : '—'}
-            onPress={() => router.push({
-              pathname: '/(tabs)/scanner',
-              params: {
-                prova_id: item.id,
-                nome_prova: item.nome_prova,
-                quantidade_questoes: item.quantidade_questoes,
-              },
-            })}
+            onPress={() => router.push(
+              `/scanner?prova_id=${item.id}&nome_prova=${encodeURIComponent(item.nome_prova)}&quantidade_questoes=${item.quantidade_questoes}`
+            )}
+            onOptionsPress={() => handleOptions(item)}
           />
         ))}
       </ScrollView>

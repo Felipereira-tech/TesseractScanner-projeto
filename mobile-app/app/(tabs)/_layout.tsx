@@ -22,6 +22,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
+          href: null, //adicionado para ocultar o botão home da região inferior da tela.
           title: 'Home',
           // Renderiza o ícone da aba Home usando o painel de ícones.
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
@@ -30,6 +31,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="gabaritos"
         options={{
+          href: null, //adicionado para ocultar o botão gabaritos da região inferior da tela.
           title: 'Gabaritos',
           // Renderiza o ícone da aba Gabaritos.
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="assignment.fill" color={color} />

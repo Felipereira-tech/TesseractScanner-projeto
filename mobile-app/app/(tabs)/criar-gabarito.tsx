@@ -7,6 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import Header from '@/components/header';
 import { useGabaritos } from '@/context/GabaritosContext';
+import { ProvasAPI } from '@/services/provas';
 
 type Alternativa = 'A' | 'B' | 'C' | 'D' | 'E';
 
@@ -22,15 +23,71 @@ function createEmptyAnswers(total: number): Array<Alternativa | null> {
 
 export default function CriarGabaritoScreen() {
   const router = useRouter();
-  const { addGabarito } = useGabaritos();
+  const params = useLocalSearchParams<{
+    id?: string;
+    nome_prova?: string;
+    descricao?: string;
+    quantidade_questoes?: string;
+    respostas?: string;
+  }>();
+  const { addGabarito, updateGabarito } = useGabaritos();
 
   const [salvando, setSalvando] = useState(false);
   const [nomeProva, setNomeProva] = useState('');
   const [descricaoProva, setDescricaoProva] = useState('');
   const [numeroQuestoes, setNumeroQuestoes] = useState(DEFAULT_QUESTOES);
   const [respostas, setRespostas] = useState<Array<Alternativa | null>>(createEmptyAnswers(DEFAULT_QUESTOES));
+  const [provaId, setProvaId] = useState<number | null>(null);
+  const isEditing = Boolean(params?.id);
 
   const accentColor = '#7C3AED';
+
+  useEffect(() => {
+    if (params?.id) {
+      setProvaId(Number(params.id));
+      setNomeProva(params.nome_prova ?? '');
+      setDescricaoProva(params.descricao ?? '');
+      setNumeroQuestoes(Number(params.quantidade_questoes ?? DEFAULT_QUESTOES));
+
+      if (params.respostas) {
+        const respostaLista = params.respostas.split(',').map((item) => item.trim()) as Alternativa[];
+        setRespostas(respostaLista);
+      }
+    }
+  }, [params]);
+
+  useEffect(() => {
+    // Se estiver editando, tenta buscar o gabarito oficial do backend
+    if (params?.id) {
+      (async () => {
+        try {
+          const g = await ProvasAPI.buscarGabarito(Number(params.id));
+          if (g && g.respostas) {
+            // O backend pode retornar respostas como números (0..4) ou letras
+            const mapped = (g.respostas as Array<any>).map((r) => {
+              if (typeof r === 'number') return ALTERNATIVAS[r] ?? null;
+              if (typeof r === 'string') {
+                const up = r.trim().toUpperCase();
+                if (ALTERNATIVAS.includes(up as Alternativa)) return up as Alternativa;
+                if (!isNaN(Number(r))) return ALTERNATIVAS[Number(r)] ?? null;
+              }
+              return null;
+            });
+
+            setRespostas((prev) => {
+              const q = Number(params.quantidade_questoes ?? DEFAULT_QUESTOES);
+              if (mapped.length === q) return mapped as Array<Alternativa | null>;
+              if (mapped.length > q) return (mapped as Array<Alternativa | null>).slice(0, q);
+              return [...(mapped as Array<Alternativa | null>), ...createEmptyAnswers(q - mapped.length)];
+            });
+          }
+        } catch (err) {
+          // falha silenciosa — continua usando os params ou estado atual
+          console.warn('Não foi possível buscar gabarito:', err);
+        }
+      })();
+    }
+  }, [params]);
 
   useEffect(() => {
     if (numeroQuestoes <= 0) { setRespostas([]); return; }
@@ -86,17 +143,28 @@ export default function CriarGabaritoScreen() {
     try {
       setSalvando(true);
 
-      await addGabarito({
-        titulo: nomeTratado,
-        descricao: descricaoProva.trim() || `Gabarito com ${numeroQuestoes} questões`,
-        questoes: numeroQuestoes,
-        respostas: respostas as Alternativa[],
-      });
-
-      resetForm();
-      Alert.alert('Gabarito salvo', `O gabarito "${nomeTratado}" foi salvo com sucesso.`, [
-        { text: 'OK', onPress: () => router.replace('/gabaritos') },
-      ]);
+      if (isEditing && provaId) {
+        await updateGabarito(provaId, {
+          titulo: nomeTratado,
+          descricao: descricaoProva.trim() || `Gabarito com ${numeroQuestoes} questões`,
+          questoes: numeroQuestoes,
+          respostas: respostas as Alternativa[],
+        });
+        Alert.alert('Gabarito atualizado', `O gabarito "${nomeTratado}" foi atualizado com sucesso.`, [
+          { text: 'OK', onPress: () => router.replace('/gabaritos') },
+        ]);
+      } else {
+        await addGabarito({
+          titulo: nomeTratado,
+          descricao: descricaoProva.trim() || `Gabarito com ${numeroQuestoes} questões`,
+          questoes: numeroQuestoes,
+          respostas: respostas as Alternativa[],
+        });
+        resetForm();
+        Alert.alert('Gabarito salvo', `O gabarito "${nomeTratado}" foi salvo com sucesso.`, [
+          { text: 'OK', onPress: () => router.replace('/gabaritos') },
+        ]);
+      }
     } catch (err: any) {
       Alert.alert(
         'Erro ao salvar',
@@ -110,7 +178,7 @@ export default function CriarGabaritoScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Header
-        title="Criar Gabarito"
+        title={isEditing ? 'Editar Gabarito' : 'Criar Gabarito'}
         subtitle="Preencha os dados e marque as respostas"
         brand={<HeaderBackButton onPress={() => router.push('/gabaritos')} />}
       />

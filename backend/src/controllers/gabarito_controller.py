@@ -105,3 +105,58 @@ class GabaritoController:
         except Exception as e:
             logger.exception("Erro ao finalizar correção: %s", e)
             return JSONResponse({"status": "erro", "mensagem": "Erro interno ao finalizar correção."}, status_code=500)
+
+    @staticmethod
+    async def buscar_por_prova_id(prova_id: int):
+        try:
+            # Valida existência da prova
+            GabaritoService._buscar_prova_ou_erro(prova_id)
+            from src.models.gabarito_model import GabaritoModel
+            gabarito = GabaritoModel.buscar_por_prova_id(prova_id)
+            if not gabarito.data:
+                return JSONResponse({"status": "erro", "mensagem": "Gabarito não encontrado."}, status_code=404)
+
+            return JSONResponse({"status": "sucesso", "dados": gabarito.data}, status_code=200)
+        except ValueError as e:
+            return JSONResponse({"status": "erro", "mensagem": str(e)}, status_code=422)
+        except Exception as e:
+            logger.exception("Erro ao buscar gabarito: %s", e)
+            return JSONResponse({"status": "erro", "mensagem": "Erro interno ao buscar gabarito."}, status_code=500)
+
+    @staticmethod
+    async def listar_notas(prova_id: int):
+        try:
+            from src.models.gabarito_model import GabaritoModel
+            res = GabaritoModel.listar_notas_por_prova(prova_id)
+            return JSONResponse({"status": "sucesso", "dados": res.data}, status_code=200)
+        except Exception as e:
+            logger.exception("Erro ao listar notas: %s", e)
+            return JSONResponse({"status": "erro", "mensagem": "Erro interno ao listar notas."}, status_code=500)
+
+    @staticmethod
+    async def atualizar_nota(nota_id: int, payload: dict):
+        try:
+            from src.models.gabarito_model import GabaritoModel
+            dados = {}
+            if 'nota' in payload:
+                dados['nota'] = payload['nota']
+            if 'acertos' in payload:
+                dados['acertos'] = payload['acertos']
+            if 'nome_aluno' in payload:
+                dados['nome_aluno'] = payload['nome_aluno']
+
+            res = GabaritoModel.atualizar_nota(nota_id, dados)
+            return JSONResponse({"status": "sucesso", "dados": res.data}, status_code=200)
+        except Exception as e:
+            logger.exception("Erro ao atualizar nota: %s", e)
+            return JSONResponse({"status": "erro", "mensagem": "Erro interno ao atualizar nota."}, status_code=500)
+
+    @staticmethod
+    async def deletar_nota(nota_id: int):
+        try:
+            from src.models.gabarito_model import GabaritoModel
+            res = GabaritoModel.deletar_nota(nota_id)
+            return JSONResponse({"status": "sucesso", "dados": res.data}, status_code=200)
+        except Exception as e:
+            logger.exception("Erro ao deletar nota: %s", e)
+            return JSONResponse({"status": "erro", "mensagem": "Erro interno ao deletar nota."}, status_code=500)

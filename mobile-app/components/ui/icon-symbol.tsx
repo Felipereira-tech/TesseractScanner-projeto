@@ -14,6 +14,8 @@ const MAPPING = {
   'chevron.right': 'chevron-right',
   'qrcode.viewfinder': 'qr-code-scanner',
   'doc.text': 'description',
+  'pencil': 'edit',
+  'trash': 'delete',
 } as const;
 
 type IconSymbolName = keyof typeof MAPPING;

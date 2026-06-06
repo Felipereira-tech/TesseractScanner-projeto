@@ -34,3 +34,23 @@ async def gabrito_coluna(
 @router.post("/gabaritos/finalizar")
 async def gabarito_finalizar(payload: dict = Body(...)):
     return await GabaritoController.finalizar(payload)
+
+
+@router.get("/gabaritos/{prova_id}")
+async def gabarito_buscar(prova_id: int):
+    return await GabaritoController.buscar_por_prova_id(prova_id)
+
+
+@router.get("/gabaritos/{prova_id}/notas")
+async def gabarito_listar_notas(prova_id: int):
+    return await GabaritoController.listar_notas(prova_id)
+
+
+@router.put("/notas/{nota_id}")
+async def nota_atualizar(nota_id: int, payload: dict = Body(...)):
+    return await GabaritoController.atualizar_nota(nota_id, payload)
+
+
+@router.delete("/notas/{nota_id}")
+async def nota_deletar(nota_id: int):
+    return await GabaritoController.deletar_nota(nota_id)
