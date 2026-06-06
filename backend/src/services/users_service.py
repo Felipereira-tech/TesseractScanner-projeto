@@ -20,7 +20,7 @@ class UserService:
             raise ValueError("A senha deve ter pelo menos 6 caracteres.")
 
         usuario_existente = UserModel.buscar_por_email(email)
-        if usuario_existente.data:
+        if usuario_existente and usuario_existente.data:
             raise ValueError("Este email já está registrado.")
 
         senha_hash = generate_password_hash(senha)

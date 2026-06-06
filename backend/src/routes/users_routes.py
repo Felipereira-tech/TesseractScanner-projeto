@@ -1,34 +1,37 @@
-from flask import Blueprint
+from fastapi import APIRouter, Request
 from src.controllers.users_controller import UserController
 
-users_bp = Blueprint('users', __name__)
+router = APIRouter()
 
 
-@users_bp.route("/usuarios/cadastro", methods=["POST"])
-def usuarios_criar():
-    return UserController.criar()
+@router.post("/usuarios/cadastro")
+async def usuarios_criar(request: Request):
+    dados = await request.json()
+    return await UserController.criar(dados)
 
 
-@users_bp.route("/usuarios/login", methods=["POST"])
-def usuarios_autenticar():
-    return UserController.autenticar()
+@router.post("/usuarios/login")
+async def usuarios_autenticar(request: Request):
+    dados = await request.json()
+    return await UserController.autenticar(dados)
 
 
-@users_bp.route("/usuarios", methods=["GET"])
-def usuarios_listar():
-    return UserController.listar()
+@router.get("/usuarios")
+async def usuarios_listar():
+    return await UserController.listar()
 
 
-@users_bp.route("/usuarios/<int:usuario_id>", methods=["GET"])
-def usuarios_buscar(usuario_id):
-    return UserController.buscar_por_id(usuario_id)
+@router.get("/usuarios/{usuario_id}")
+async def usuarios_buscar(usuario_id: int):
+    return await UserController.buscar_por_id(usuario_id)
 
 
-@users_bp.route("/usuarios/<int:usuario_id>", methods=["PUT"])
-def usuarios_atualizar(usuario_id):
-    return UserController.atualizar(usuario_id)
+@router.put("/usuarios/{usuario_id}")
+async def usuarios_atualizar(usuario_id: int, request: Request):
+    dados = await request.json()
+    return await UserController.atualizar(usuario_id, dados)
 
 
-@users_bp.route("/usuarios/<int:usuario_id>", methods=["DELETE"])
-def usuarios_deletar(usuario_id):
-    return UserController.deletar(usuario_id)
+@router.delete("/usuarios/{usuario_id}")
+async def usuarios_deletar(usuario_id: int):
+    return await UserController.deletar(usuario_id)

@@ -1,35 +1,88 @@
 # API Backend
 
-Documentação da API Flask usada pelo projeto. Este backend expõe rotas para cadastro de provas, cadastro e correção de gabaritos e correção de cartões por imagem.
+Documentação atualizada da API usada pelo projeto. Este backend foi migrado de Flask para FastAPI e é responsável pelo cadastro de provas, cadastro e correção de gabaritos, leitura de cartões-resposta por imagem e gerenciamento de turmas.
 
-## Visão geral
+Além do backend, este documento também descreve a arquitetura atual do frontend mobile em Expo Go e o funcionamento do scanner calibrado de cartões.
 
+---
+
+# Visão geral
+
+- Framework backend: FastAPI
 - Base URL local: `http://localhost:8000`
 - Prefixo comum das rotas: `/api`
-- CORS habilitado em toda a aplicação
-- Ponto de entrada: `main.py`
+- Arquitetura: MVC
+- IDE utilizada: VSCode
+- Backend integrado ao Supabase
+- Scanner de cartão usando OpenCV
+- Frontend mobile usando Expo Go + TypeScript
 
-O aplicativo é criado em `src/__init__.py` e registra os blueprints de rotas em:
+O sistema está dividido em:
 
-- `src/routes/provas_route.py`
-- `src/routes/gabarito_routes.py`
-- `src/routes/scanner_route.py`
+```txt
+/backend
+/mobile-app
+```
 
-## Requisitos de ambiente
+---
 
-Antes de iniciar o backend, configure as variáveis de ambiente do Supabase:
+# Estrutura do projeto
+
+```txt
+/backend
+├── main.py
+├── src/
+│   ├── controllers/
+│   ├── services/
+│   ├── routes/
+│   ├── models/
+│   ├── scanner/
+│   └── config/
+
+/mobile-app
+├── app/
+├── context/
+├── services/
+└── app/api/
+```
+
+## Tecnologias utilizadas
+
+### Backend
+
+- Python
+- FastAPI
+- OpenCV
+- Supabase
+
+### Frontend
+
+- React Native
+- Expo Go
+- TypeScript
+- Axios
+
+---
+
+# Requisitos de ambiente
+
+Antes de iniciar o backend, configure as variáveis do Supabase.
+
+Variáveis obrigatórias:
 
 - `SUPABASE_URL`
 - `SUPABASE_KEY`
 
-Exemplo de arquivo `.env`:
+Exemplo do arquivo `.env`:
 
 ```env
 SUPABASE_URL=https://seu-projeto.supabase.co
 SUPABASE_KEY=sua-chave-supabase
 ```
 
-## Instalação e execução
+---
+
+# Instalação e execução
 
 Dentro da pasta `backend`:
 
@@ -38,54 +91,258 @@ pip install -r requirements.txt
 python main.py
 ```
 
-O servidor sobe em `0.0.0.0:8000` com `debug=True`.
+O servidor sobe localmente em:
 
-## Modelo de dados usado pela API
+```txt
+http://localhost:8000
+```
 
-A API grava dados nas tabelas abaixo do Supabase:
+---
+
+# Banco de dados (Supabase)
+
+O sistema utiliza Supabase conectado em tempo real.
+
+Tabelas utilizadas:
 
 - `provas`
 - `gabarito`
 - `gabarito_alunos`
 - `notas`
+- `turmas`
 
-Campos esperados pelos handlers:
+## Estrutura dos dados
 
-- `provas`: o payload JSON é enviado diretamente para inserção; o campo `quantidade_questoes` precisa ser maior que zero.
-- `gabarito`: `id_prova`, `respostas`
-- `gabarito_alunos`: `nome_aluno`, `id_turma`, `id_prova`, `respostas`
-- `notas`: `nome_aluno`, `id_prova`, `acertos`, `nota`
+### provas
 
-## Convenções de entrada
+Representa uma prova cadastrada.
 
-### Formato de respostas do gabarito
+Campos esperados:
 
-O campo `respostas_raw` aceita três formatos principais:
+- `nome`
+- `id_turma`
+- `quantidade_questoes`
+- `descricao`
 
-- lista JSON: `['A', 'B', 'C']` ou `[0, 1, 2]`
-- string separada por vírgulas: `A,B,C`
-- string contínua: `ABC`
+Regras:
 
-Cada resposta pode ser enviada como:
+- `quantidade_questoes` deve ser maior que zero.
 
-- letras de `A` a `E`
-- números de `0` a `4`
+---
 
-Internamente, a API normaliza as alternativas para índices numéricos de `0` a `4`.
+### gabarito
 
-### Upload de imagem
+Representa o gabarito oficial de uma prova.
 
-As rotas de correção recebem a imagem via `multipart/form-data`, no campo `file`.
+Campos:
 
-## Endpoints
+- `id_prova`
+- `respostas`
 
-### Criar prova
+---
 
-`POST /api/provas`
+### gabarito_alunos
 
-Cria uma nova prova e persiste o JSON recebido diretamente na tabela `provas`.
+Armazena respostas lidas dos alunos.
 
-#### Corpo da requisição
+Campos:
+
+- `nome_aluno`
+- `id_turma`
+- `id_prova`
+- `respostas`
+
+---
+
+### notas
+
+Armazena notas calculadas.
+
+Campos:
+
+- `nome_aluno`
+- `id_prova`
+- `acertos`
+- `nota`
+
+---
+
+### turmas
+
+Tabela utilizada para seleção dinâmica no aplicativo mobile.
+
+Campos dependem da estrutura criada no Supabase.
+
+---
+
+# Convenções de entrada
+
+## Formato das respostas do gabarito
+
+O campo `respostas_raw` aceita três formatos:
+
+### Lista JSON
+
+```json
+["A","B","C"]
+```
+
+ou
+
+```json
+[0,1,2]
+```
+
+### String separada por vírgula
+
+```txt
+A,B,C,D,E
+```
+
+### String contínua
+
+```txt
+ABCDE
+```
+
+Cada alternativa pode ser enviada como:
+
+- letras `A` até `E`
+- números `0` até `4`
+
+Internamente o backend converte tudo para índices numéricos:
+
+```txt
+A → 0
+B → 1
+C → 2
+D → 3
+E → 4
+```
+
+---
+
+## Upload de imagem
+
+As rotas de correção recebem imagem via:
+
+```txt
+multipart/form-data
+```
+
+Campo obrigatório:
+
+```txt
+file
+```
+
+Formatos aceitos:
+
+- JPG
+- JPEG
+- PNG
+
+---
+
+# Scanner do cartão (OpenCV)
+
+O scanner foi calibrado para leitura física do cartão impresso preto e branco.
+
+Estado atual:
+
+```python
+width_img = 700 (largura)
+height_img = 900 (altura)
+
+q_per_col = 24 (questão por coluna)
+min_area = 5000 (área mínima para ser reconhecido como retângulo)
+
+header_pct = 0.04 (cabeça~lho do cartão resposta)
+numero_width_px = 117 (campo lateral de número da questão)
+
+limiar_pct = 0.25 (% mínima de pixels pretos (preenchidos) para validar uma marcação)
+dominancia = 1.10 (Fator para evitar rasuras: a opção mais preenchida deve ser 10% maior que a segunda)
+```
+
+## Threshold
+
+O scanner utiliza threshold fixo:
+
+```python
+cv2.threshold(..., 100, 255, cv2.THRESH_BINARY_INV)
+```
+
+O threshold adaptativo foi removido por inconsistência em cartões físicos, pois o mesmo
+estava extremamente sensível á identifação de rasuras, causando conflitos na correção.
+
+---
+
+## Dilatação da borda externa
+
+O detector do cartão físico utiliza:
+
+```python
+kernel = np.ones((5,5))
+iterations = 2
+```
+
+Objetivo:
+
+- detectar corretamente a borda física do cartão
+- reduzir falhas de contorno
+
+---
+
+## Precisão atual
+
+Resultado dos testes físicos:
+
+```txt
+0 erros em 24 questões
+```
+
+Testado com:
+
+```txt
+cartão físico preto e branco
+```
+
+---
+
+## Debug do scanner
+
+Existe rota de debug dedicada.
+
+O processamento salva:
+
+```txt
+9 arquivos JPG
+```
+
+Representando as etapas do pipeline do scanner.
+
+---
+
+## Renderização das respostas
+
+O método `_desenhar_respostas`:
+
+- utiliza elipse achatada
+- ignora questões com valor `-1`
+
+Isso evita marcações incorretas em respostas não detectadas.
+
+---
+
+# Endpoints
+
+## Criar prova
+
+### POST `/api/provas`
+
+Cria uma prova no banco.
+
+### Corpo da requisição
 
 `application/json`
 
@@ -95,19 +352,24 @@ Exemplo:
 {
   "nome": "Prova de Matemática",
   "id_turma": 1,
-  "quantidade_questoes": 10,
+  "quantidade_questoes": 24,
   "descricao": "Avaliação do bimestre"
 }
 ```
 
-#### Regras de validação
+### Regras de validação
 
 - `quantidade_questoes` precisa ser maior que zero
-- campos extras são repassados para o Supabase sem validação adicional no controller
 
-#### Resposta de sucesso
+### Resposta de sucesso
 
-Status: `201 Created`
+Status:
+
+```txt
+201 Created
+```
+
+Exemplo:
 
 ```json
 {
@@ -116,263 +378,518 @@ Status: `201 Created`
 }
 ```
 
-Observação: o conteúdo de `dados` vem diretamente da resposta do Supabase.
+---
 
-#### Erros possíveis
+## Listar provas
 
-- `400 Bad Request`: `quantidade_questoes` inválida
+### GET `/api/provas`
+
+Retorna provas cadastradas no banco.
+
+### Resposta
+
+Status:
+
+```txt
+200 OK
+```
+
+Exemplo:
+
+```json
+[
+  {
+    "id": 1,
+    "nome": "Matemática",
+    "quantidade_questoes": 24
+  }
+]
+```
 
 ---
 
-### Cadastrar gabarito
+## Cadastrar gabarito
 
-`POST /api/gabaritos`
-
-Alias:
-
-- `POST /api/gabaritos/cadastrar`
+### POST `/api/gabaritos`
 
 Cria ou atualiza o gabarito oficial de uma prova.
 
-#### Corpo da requisição
-
-`multipart/form-data` ou `application/x-www-form-urlencoded`
-
-Campos:
-
-- `prova_id` - inteiro
-- `respostas_raw` - string ou lista serializada
-
-Exemplo com `multipart/form-data`:
-
-| Campo | Valor |
-| --- | --- |
-| `prova_id` | `1` |
-| `respostas_raw` | `A,B,C,D,E,A,B,C,D,E` |
-
-Exemplo com JSON serializado em string:
-
-| Campo | Valor |
-| --- | --- |
-| `prova_id` | `1` |
-| `respostas_raw` | `['A','B','C','D','E','A','B','C','D','E']` |
-
-#### Regras de validação
-
-- a prova precisa existir
-- o número de respostas precisa ser igual a `quantidade_questoes` da prova
-- respostas vazias ou fora de `A` a `E` e `0` a `4` são rejeitadas
-
-#### Resposta de sucesso
-
-Status: `201 Created`
-
-```json
-{
-  "status": "sucesso",
-  "dados": []
-}
-```
-
-#### Erros possíveis
-
-- `400 Bad Request`: prova inexistente, formato inválido ou interpretação impossível das respostas
-- `400 Bad Request`: ausência de respostas
-- `400 Bad Request`: número de respostas diferente da quantidade de questões da prova
-
----
-
-### Corrigir gabarito com imagem
-
-`POST /api/gabaritos/corrigir`
-
-Alias:
-
-- `POST /api/corrigir-dinamico`
-
-Corrige um cartão de respostas usando a imagem enviada e o gabarito oficial salvo no banco.
-
-#### Corpo da requisição
+### Corpo da requisição
 
 `multipart/form-data`
 
 Campos:
 
-- `prova_id` - inteiro
-- `nome_aluno` - string
-- `id_turma` - inteiro
-- `file` - imagem JPG ou PNG
+| Campo | Tipo |
+|---|---:|
+| prova_id | inteiro |
+| respostas_raw | string ou lista serializada |
 
 Exemplo:
 
-| Campo | Valor |
-| --- | --- |
-| `prova_id` | `1` |
-| `nome_aluno` | `Ana Silva` |
-| `id_turma` | `3` |
-| `file` | arquivo de imagem |
+```txt
+prova_id=1
+respostas_raw=A,B,C,D,E,A,B,C,D,E
+```
 
-#### Regras de validação
+Exemplo serializado:
+
+```txt
+['A','B','C','D']
+```
+
+### Regras de validação
 
 - a prova precisa existir
-- `nome_aluno` é obrigatório
-- `id_turma` é obrigatório
-- o arquivo precisa existir
-- o arquivo precisa ter MIME type de imagem, como `image/jpeg` ou `image/png`
-- o gabarito oficial precisa existir para a prova
+- número de respostas deve coincidir com `quantidade_questoes`
+- respostas inválidas são rejeitadas
 
-#### Resposta de sucesso
+### Resposta de sucesso
 
-Status: `200 OK`
+Status:
+
+```txt
+201 Created
+```
+
+Exemplo:
+
+```json
+{
+  "status": "sucesso",
+  "dados": []
+}
+```
+
+---
+
+## Corrigir gabarito por imagem
+
+### POST `/api/gabaritos/corrigir`
+
+Corrige cartão usando scanner OpenCV e gabarito salvo.
+
+### Corpo da requisição
+
+`multipart/form-data`
+
+Campos:
+
+| Campo | Tipo |
+|---|---:|
+| prova_id | inteiro |
+| nome_aluno | string |
+| id_turma | inteiro |
+| file | imagem |
+
+### Regras de validação
+
+- prova precisa existir
+- nome do aluno obrigatório
+- turma obrigatória
+- imagem obrigatória
+- gabarito oficial deve existir
+
+### Resposta de sucesso
+
+Status:
+
+```txt
+200 OK
+```
+
+Exemplo:
 
 ```json
 {
   "status": "sucesso",
   "aluno": "Ana Silva",
   "resultado": {
-    "acertos": 8,
-    "total": 10,
-    "nota": 8.0
+    "acertos": 20,
+    "total": 24,
+    "nota": 8.3
   },
-  "respostas_lidas": [0, 1, 2, 3, 4, 0, 1, 2, 3, 4],
+  "respostas_lidas": [
+    0,1,2,3,4
+  ],
   "preview_correcao": "data:image/jpeg;base64,..."
 }
 ```
 
-O campo `preview_correcao` contém uma imagem em Base64 com o resultado da correção.
+### Persistência gerada
 
-#### Persistência gerada por essa rota
+Esta rota salva automaticamente:
 
-- grava as respostas do aluno em `gabarito_alunos`
-- grava a nota em `notas`
+#### gabarito_alunos
 
-#### Erros possíveis
+```txt
+nome_aluno
+id_turma
+id_prova
+respostas
+```
 
-- `422 Unprocessable Entity`: dados obrigatórios ausentes ou inválidos
-- `500 Internal Server Error`: falha no processamento da imagem
+#### notas
+
+```txt
+nome_aluno
+id_prova
+acertos
+nota
+```
 
 ---
 
-### Corrigir cartão pela rota do scanner
+## Listar turmas
 
-`POST /api/corrigir-cartao`
+### GET `/api/turmas`
 
-Executa um fluxo alternativo de correção de cartão usando `scanner_service.processar_correcao`.
+Retorna as turmas cadastradas no banco.
 
-#### Corpo da requisição
+### Resposta
+
+Status:
+
+```txt
+200 OK
+```
+
+Exemplo:
+
+```json
+[
+  {
+    "id": 1,
+    "nome": "Turma A"
+  }
+]
+```
+
+---
+
+## Correção alternativa do scanner
+
+### POST `/api/corrigir-cartao`
+
+Executa fluxo alternativo de correção via scanner.
+
+### Corpo da requisição
 
 `multipart/form-data`
 
 Campos:
 
-- `prova_id` - inteiro
-- `nome_aluno` - string
-- `file` - imagem
+| Campo | Tipo |
+|---|---:|
+| prova_id | inteiro |
+| nome_aluno | string |
+| file | imagem |
 
-#### Comportamento
+### Comportamento
 
-- procura a prova em `provas`
-- procura o gabarito em `gabarito`
-- processa a imagem com `CartaoScanner`
-- grava a nota em `notas`
+- procura prova em `provas`
+- procura gabarito em `gabarito`
+- processa imagem via scanner
+- grava nota em `notas`
 
-#### Resposta de sucesso
+### Resposta de sucesso
 
-Status: `200 OK`
+Status:
+
+```txt
+200 OK
+```
+
+Exemplo:
 
 ```json
 {
   "aluno": "Ana Silva",
-  "acertos": 8,
-  "nota": 8.0,
-  "respostas": [0, 1, 2, 3, 4, 0, 1, 2, 3, 4]
+  "acertos": 20,
+  "nota": 8.3,
+  "respostas": [0,1,2,3]
 }
 ```
 
-#### Respostas de erro do fluxo atual
+---
 
-O handler retorna um JSON com `error` e `code`, mas não ajusta o status HTTP explicitamente.
+## Debug do scanner
 
-Exemplos:
+### POST `/api/debug/scanner`
 
-```json
-{
-  "error": "Prova não encontrada",
-  "code": 404
-}
+Executa o pipeline do scanner e salva imagens intermediárias para debug.
+
+Objetivo:
+
+- validar contornos
+- validar threshold
+- validar leitura das bolhas
+- analisar falhas do scanner
+
+Arquivos gerados:
+
+```txt
+9 imagens JPG
 ```
 
-```json
-{
-  "error": "Gabarito não encontrado",
-  "code": 404
-}
+---
+
+# Frontend mobile (Expo Go)
+
+O frontend mobile utiliza dados reais do backend.
+
+Não existem dados mockados.
+
+---
+
+## Axios dinâmico
+
+Arquivo:
+
+```txt
+/mobile-app/app/api/axios.js
 ```
 
-## Resumo rápido dos endpoints
+Configuração atual:
+
+```js
+Constants.expoConfig?.hostUri
+```
+
+Objetivo:
+
+- detectar automaticamente IP local
+- evitar hardcode do endereço do backend
+
+---
+
+## Contexto de gabaritos
+
+Arquivo:
+
+```txt
+/mobile-app/context/GabaritosContext.tsx
+```
+
+Estado atual:
+
+- conectado ao backend real
+- sem mocks
+- sincronizado com Supabase
+
+---
+
+## Serviço de provas
+
+Arquivo:
+
+```txt
+/mobile-app/services/provas.ts
+```
+
+Responsável por:
+
+- criação de provas
+- listagem de provas
+- comunicação com API
+
+---
+
+## Tela criar-gabarito
+
+Arquivo:
+
+```txt
+/mobile-app/app/criar-gabarito.tsx
+```
+
+Comportamento:
+
+- cria prova
+- salva gabarito no backend
+- persiste tudo no Supabase
+
+---
+
+## Tela gabaritos
+
+Arquivo:
+
+```txt
+/mobile-app/app/gabaritos.tsx
+```
+
+Comportamento:
+
+- lista provas reais
+- navega para scanner
+
+---
+
+## GabaritoCard
+
+Componente responsável pela navegação.
+
+Envia:
+
+```txt
+prova_id
+nome_prova
+```
+
+para a tela do scanner.
+
+---
+
+## Tela scanner
+
+Arquivo:
+
+```txt
+/mobile-app/app/scanner.tsx
+```
+
+Configuração atual da câmera:
+
+```txt
+height: 420
+width: 100%
+quality: 1.0
+```
+
+Funcionalidades:
+
+- câmera integrada
+- seletor de turma vindo do banco
+- nome do aluno
+- envio da imagem via `multipart/form-data`
+- correção automática
+
+---
+
+## Home
+
+Arquivo:
+
+```txt
+/mobile-app/app/home.tsx
+```
+
+Comportamento:
+
+- lista gabaritos reais do banco
+
+---
+
+# Resumo rápido dos endpoints
 
 | Método | Rota | Descrição |
-| --- | --- | --- |
-| `POST` | `/api/provas` | Cria uma prova |
-| `POST` | `/api/gabaritos` | Cadastra gabarito oficial |
-| `POST` | `/api/gabaritos/cadastrar` | Alias do cadastro de gabarito |
-| `POST` | `/api/gabaritos/corrigir` | Corrige cartão por imagem |
-| `POST` | `/api/corrigir-dinamico` | Alias da correção por imagem |
-| `POST` | `/api/corrigir-cartao` | Fluxo alternativo de correção via scanner |
+|---|---|---|
+| POST | `/api/provas` | Criar prova |
+| GET | `/api/provas` | Listar provas |
+| POST | `/api/gabaritos` | Cadastrar gabarito |
+| POST | `/api/gabaritos/corrigir` | Corrigir cartão por imagem |
+| GET | `/api/turmas` | Listar turmas |
+| POST | `/api/corrigir-cartao` | Fluxo alternativo de scanner |
+| POST | `/api/debug/scanner` | Debug do scanner |
 
-## Observações técnicas
+---
 
-- Não há autenticação implementada.
-- As rotas aceitam requisições de qualquer origem devido ao `CORS(app)`.
-- O retorno do Supabase é repassado parcialmente nas respostas de criação.
-- A rota `/api/corrigir-cartao` e a rota `/api/gabaritos/corrigir` usam implementações diferentes e não retornam exatamente o mesmo formato.
+# Observações técnicas
 
-## Exemplos de uso com cURL
+- Backend migrado completamente de Flask para FastAPI
+- Sem autenticação implementada
+- Integração direta com Supabase
+- Scanner calibrado para cartão físico preto e branco
+- Frontend sem dados mockados
+- Comunicação frontend/backend usando Axios
+- Scanner possui pipeline de debug com imagens intermediárias
+- Correção persiste respostas e notas automaticamente no banco
 
-### Criar prova
+---
+
+# Exemplos de uso com cURL
+
+## Criar prova
 
 ```bash
 curl -X POST http://localhost:8000/api/provas \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nome": "Prova de Matemática",
-    "quantidade_questoes": 10
-  }'
+-H "Content-Type: application/json" \
+-d '{
+  "nome":"Prova de Matemática",
+  "quantidade_questoes":24
+}'
 ```
 
-### Cadastrar gabarito
+---
+
+## Listar provas
+
+```bash
+curl http://localhost:8000/api/provas
+```
+
+---
+
+## Cadastrar gabarito
 
 ```bash
 curl -X POST http://localhost:8000/api/gabaritos \
-  -F "prova_id=1" \
-  -F "respostas_raw=A,B,C,D,E,A,B,C,D,E"
+-F "prova_id=1" \
+-F "respostas_raw=A,B,C,D,E,A,B,C,D,E"
 ```
 
-### Corrigir cartão com imagem
+---
+
+## Corrigir cartão
 
 ```bash
 curl -X POST http://localhost:8000/api/gabaritos/corrigir \
-  -F "prova_id=1" \
-  -F "nome_aluno=Ana Silva" \
-  -F "id_turma=3" \
-  -F "file=@/caminho/para/imagem.jpg"
+-F "prova_id=1" \
+-F "nome_aluno=Ana Silva" \
+-F "id_turma=3" \
+-F "file=@/caminho/para/imagem.jpg"
 ```
 
-### Corrigir cartão pela rota do scanner
+---
+
+## Listar turmas
+
+```bash
+curl http://localhost:8000/api/turmas
+```
+
+---
+
+## Correção alternativa
 
 ```bash
 curl -X POST http://localhost:8000/api/corrigir-cartao \
-  -F "prova_id=1" \
-  -F "nome_aluno=Ana Silva" \
-  -F "file=@/caminho/para/imagem.jpg"
+-F "prova_id=1" \
+-F "nome_aluno=Ana Silva" \
+-F "file=@/caminho/para/imagem.jpg"
 ```
 
-## Estrutura do projeto relacionada à API
+---
 
-- `main.py`: inicialização da aplicação
-- `src/__init__.py`: factory e registro dos blueprints
-- `src/routes/`: definição das rotas
-- `src/controllers/`: tratamento de request, validação e respostas HTTP
-- `src/services/`: regras de negócio e processamento de imagem
-- `src/models/`: acesso ao Supabase
-- `src/config/database.py`: criação do client Supabase
+## Debug scanner
+
+```bash
+curl -X POST http://localhost:8000/api/debug/scanner \
+-F "file=@/caminho/para/imagem.jpg"
+```
+
+
+
+
+# COMO EXECUTAR O PROGRAMA COMPLETO:
+
+`1 -` Abrir dois terminais e acessar as pastas `mobile-app` e `backend` separadamente (com `venv` ativo)
+`2 -` Nos terminais `mobile-app` e `backend` executar respectivamente: 
+# npx expo start (inicar simulador mobile)
+# python main.py (iniciar servidor uvicorn)
+`3 -` Após inicialização, escanear o QRCode no terminal `mobile-app` com o app `expoGO`
+
+# OBSERVAÇÕES:
+- Celular e Computador precisam estar na mesma rede wi-fi
+- Aproximar o máximo possível a câmera do cartão, para evitar a borda do papel A4 
