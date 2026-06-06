@@ -51,6 +51,14 @@ export default function TabLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="resultados"
+        options={{
+          // Tela de resultado não aparece como aba visível.
+          href: null,
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="assignment.fill" color={color} />
+        }}
+      />
 
     </Tabs>
 
