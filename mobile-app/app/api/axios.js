@@ -12,10 +12,11 @@ const host =
 // Define a URL base da API mapeando por plataforma.
 // Embora todas apontem para a porta :8000 usando o IP dinâmico descoberto acima,
 // o uso do Platform.select permite customizações futuras caso Android ou iOS precisem de rotas/portas diferentes.
+// Use a hosted backend in production. Substitua pela sua URL hospedada.
 export const API_BASE_URL = Platform.select({
-  android: `http://${host}:8000`,
-  ios: `http://${host}:8000`,
-  default: `http://${host}:8000`,
+  android: `https://tesseractscanner-projeto.onrender.com`,
+  ios: `https://tesseractscanner-projeto.onrender.com`,
+  default: `https://tesseractscanner-projeto.onrender.com`,
 });
 
 // Cria e configura uma instância global do Axios para realizar as requisições HTTP
