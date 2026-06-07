@@ -51,7 +51,16 @@ export default function TabLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="resultados"
+        options={{
+          href: null, //adicionado para ocultar o botão resultados da região inferior da tela.
+          title: 'Resultados',
+          // Renderiza o ícone da aba Resultados.
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />
 
+        }}
+      />
     </Tabs>
 
   );
