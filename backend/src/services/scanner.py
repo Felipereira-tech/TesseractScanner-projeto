@@ -26,13 +26,15 @@ class CartaoScanner:
 
         # 1. Preparação
         imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        imgBlur = cv2.GaussianBlur(imgGray, (11, 11), 1)
+        imgBlur = cv2.GaussianBlur(imgGray, (5, 5), 1.2)
+        
+        # O Canny calibrado
         imgCanny = cv2.Canny(imgBlur, 10, 50)
         cv2.imwrite("debug_04_canny.jpg", imgCanny)
-
-        # Dilata para fechar borda externa do cartão
+        
+        # Enviamos o Canny direto para a dilatação (pulando o filtro que apagava tudo)
         kernel = np.ones((5, 5), np.uint8)
-        imgDilated = cv2.dilate(imgCanny, kernel, iterations=2)
+        imgDilated = cv2.dilate(imgCanny, kernel, iterations=3)
 
         # 2. Detecção do contorno
         contours, _ = cv2.findContours(imgDilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
