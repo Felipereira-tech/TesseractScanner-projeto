@@ -1,90 +1,119 @@
-import { SafeAreaView, StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { useEffect } from 'react';
+import { Alert, SafeAreaView, StyleSheet, View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import Header from '@/components/header';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { GabaritoCard } from '@/components/ui/gabaritoCard';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { useNavigation } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
+import { useGabaritos } from '@/context/GabaritosContext';
 
-
-export default function HomeScreen() {
+export default function GabaritosScreen() {
   const navigation = useNavigation();
   const router = useRouter();
+  const { gabaritos, loading, erro, recarregar, deleteGabarito } = useGabaritos();// Acessa o contexto dos gabaritos para obter os dados, o status de carregamento, possíveis erros e a função para recarregar os gabaritos
+
+  const handleDelete = async (provaId: number) => {
+    Alert.alert(
+      'Excluir gabarito',
+      'Tem certeza de que deseja excluir este gabarito?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteGabarito(provaId);
+              Alert.alert('Excluído', 'Gabarito removido com sucesso.');
+            } catch (error) {
+              Alert.alert('Erro', 'Não foi possível excluir o gabarito. Tente novamente.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleOptions = (item: typeof gabaritos[number]) => {
+    Alert.alert(
+      'Ações do gabarito',
+      undefined,
+      [
+        {
+          text: 'Editar',
+          onPress: () => {
+            const respostasParam = item.respostas ? encodeURIComponent(item.respostas.join(',')) : '';
+            router.push(
+              `/criar-gabarito?id=${item.id}&nome_prova=${encodeURIComponent(item.nome_prova)}&descricao=${encodeURIComponent(item.descricao ?? '')}&quantidade_questoes=${item.quantidade_questoes}&respostas=${respostasParam}`
+            );
+          },
+        },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: () => handleDelete(item.id),
+        },
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  useEffect(() => {
+    recarregar();
+  }, []);// Efeito para recarregar os gabaritos quando a tela for focada, garantindo que os dados estejam sempre atualizados
 
   return (
     <SafeAreaView style={styles.container}>
       <View>
         <Header
           title="Meus Gabaritos"
-          subtitle=''
+          subtitle=""
           brand={<HeaderBackButton onPress={() => navigation.goBack()} />}
           rightAction={
             <TouchableOpacity style={styles.rightAction} onPress={() => router.push('/criar-gabarito')}>
-            <IconSymbol name="doc.text" size={20} color="#fff" />
-            <Text style={styles.rightActionText}>Novo</Text>
+              <IconSymbol name="doc.text" size={20} color="#fff" />
+              <Text style={styles.rightActionText}>Novo</Text>
             </TouchableOpacity>
           }
         />
       </View>
 
       <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-        <GabaritoCard
-          titulo="Gabarito 1"
-          descricao="Descricao do gabarito 1"
-          questoes={30}
-          data="01/01/2024"
-          disciplina="geografia"
-        />
+        {loading && <ActivityIndicator size="large" color="#7C3AED" />}
 
-        <GabaritoCard
-          titulo="Gabarito 1"
-          descricao="Descricao do gabarito 1"
-          questoes={30}
-          data="01/01/2024"
-          disciplina="matematica"
-        />
+        {erro && <Text style={{ color: 'red', textAlign: 'center' }}>{erro}</Text>}
 
-        <GabaritoCard
-          titulo="Gabarito 1"
-          descricao="Descricao do gabarito 1"
-          questoes={30}
-          data="01/01/2024"
-          disciplina="portugues"
-        />
+        {!loading && !erro && gabaritos.length === 0 && (
+          <Text style={{ color: '#bec3ce', textAlign: 'center' }}>
+            Nenhum gabarito cadastrado ainda.
+          </Text>
+        )}
 
-        <GabaritoCard
-          titulo="Gabarito 1"
-          descricao="Descricao do gabarito 1"
-          questoes={30}
-          data="01/01/2024"
-          disciplina="geografia"
-        />
-
-        <GabaritoCard
-                  titulo="Gabarito 1"
-                  descricao="Descricao do gabarito 1"
-                  questoes={30}
-                  data="01/01/2024"
-                  disciplina="portugues"
-                />
-
-                <GabaritoCard
-                  titulo="Gabarito 1"
-                  descricao="Descricao do gabarito 1"
-                  questoes={30}
-                  data="01/01/2024"
-                  disciplina="geografia"
-                />
+        {gabaritos.map((item) => (
+          <GabaritoCard
+            key={item.id}
+            titulo={item.nome_prova}
+            descricao={item.descricao ?? ''}
+            questoes={item.quantidade_questoes}
+            data={item.created_at ? new Date(item.created_at).toLocaleDateString('pt-BR') : '—'}
+            onPress={() => router.push(
+              `/scanner?prova_id=${item.id}&nome_prova=${encodeURIComponent(item.nome_prova)}&quantidade_questoes=${item.quantidade_questoes}`
+            )}
+            onOptionsPress={() => handleOptions(item)}
+          />
+        ))}
       </ScrollView>
     </SafeAreaView>
-  );
+  );// Estrutura principal da tela de gabaritos, incluindo o cabeçalho, a lista de gabaritos e os estados de carregamento e erro
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F3F4F6',
-  },
+  container: { flex: 1, backgroundColor: '#F3F4F6' },
   listContent: {
     alignItems: 'center',
     gap: 12,
@@ -101,8 +130,5 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#7C3AED',
   },
-  rightActionText: {
-    color: '#ffffff',
-    fontWeight: '600',
-  },
+  rightActionText: { color: '#ffffff', fontWeight: '600' },
 });

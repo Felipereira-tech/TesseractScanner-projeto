@@ -1,11 +1,12 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import Header from '@/components/header';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ScanLine, FileText, BarChart3, Settings, ListChecks } from 'lucide-react-native';
+import { ScanLine, FileText, BarChart3, ListChecks } from 'lucide-react-native';
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useGabaritos } from '@/context/GabaritosContext';
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -177,7 +178,69 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6b7280',
   },
-
+  savedListWrapper: {
+    width: '100%',
+    minHeight: 130,
+    maxHeight: 320,
+  },
+  savedList: {
+    width: '100%',
+  },
+  savedListContent: {
+    paddingVertical: 8,
+    gap: 12,
+  },
+  savedItem: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  savedItemText: {
+    flex: 1,
+    marginRight: 12,
+  },
+  savedItemTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  savedItemDesc: {
+    fontSize: 13,
+    color: '#6b7280',
+    lineHeight: 18,
+  },
+  savedItemMeta: {
+    alignItems: 'flex-end',
+  },
+  savedBadgeText: {
+    fontSize: 12,
+    color: '#4f46e5',
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  savedItemDate: {
+    fontSize: 11,
+    color: '#9ca3af',
+  },
+  savedEmptyCard: {
+    backgroundColor: '#f3f4f6',
+    padding: 18,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  savedEmptyText: {
+    color: '#6b7280',
+    fontSize: 14,
+    textAlign: 'center',
+  },
 });
 
 function ActivityItem({ icon, title, desc }: any) {
@@ -196,6 +259,7 @@ function ActivityItem({ icon, title, desc }: any) {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { gabaritos } = useGabaritos();
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -259,59 +323,24 @@ export default function HomeScreen() {
                 </View>
               </TouchableOpacity>
 
-              <TouchableOpacity style={{ width: '50%' }}>
+              <TouchableOpacity style={{ width: '50%' }} onPress={() => router.push('/resultados')}>
                 <View style={styles.gridCard}>
                   <View style={styles.iconBoxGreen}>
                     <BarChart3 color="#059669" size={24} />
                   </View>
-                  <Text style={styles.gridTitle}>Estatísticas</Text>
-                  <Text style={styles.gridDesc}>Análise</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={{ width: '50%' }}>
-                <View style={styles.gridCard}>
-                  <View style={styles.iconBoxYelow}>
-                    <Settings color="#d97706" size={24} />
-                  </View>
-                  <Text style={styles.gridTitle}>Configurações</Text>
-                  <Text style={styles.gridDesc}>Ajustes</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={{ width: '50%' }}>
-                <View style={styles.gridCardEmpty}>
-                  <Text style={styles.plus}>+</Text>
-                  <Text style={styles.gridTitle}>Em breve</Text>
-                  <Text style={styles.gridDesc}>Novidades</Text>
+                  <Text style={styles.gridTitle}>Resultados</Text>
+                  <Text style={styles.gridDesc}>Ver Notas</Text>
                 </View>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.sectionTitle}>ATIVIDADE RECENTES</Text>
-              <View style={styles.activityCard}>
-                  <ActivityItem
-                    icon={<ScanLine color="#16a34a" size={18} />}
-                    title="Turma 8A - Matemática"
-                    desc="15 alunos corrigidos • há 2 horas"
-                  />
-
-                  <ActivityItem
-                    icon={<FileText color="#2563eb" size={18} />}
-                    title="Prova de História"
-                    desc="Gabarito criado • há 1 dia"
-                  />
-
-                  <ActivityItem
-                    icon={<ScanLine color="#7c3aed" size={18} />}
-                    title="Turma 7B - Português"
-                    desc="23 alunos corrigidos • há 3 dias"
-                  />
-                </View>
+            
+            {/* Foi removido da tela inicial o container de "Gabaritos Salvos" */}
 
         </ScrollView>
 
-        <StatusBar style='auto' hidden={true}/>
+        
+        
 
       </LinearGradient>
     </SafeAreaView>

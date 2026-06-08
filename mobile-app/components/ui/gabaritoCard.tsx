@@ -1,6 +1,7 @@
+/* gabaritoCard.tsx */
+
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 
-import { Disciplina, getDisciplinaIconColor } from '@/constants/disciplinas';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 type GabaritoCardProps = {
@@ -8,40 +9,44 @@ type GabaritoCardProps = {
   descricao: string;
   questoes: number;
   data: string;
-  disciplina: Disciplina;
+  onPress?: () => void; 
   onOptionsPress?: () => void;
 };
 
-export function GabaritoCard({ titulo, descricao, questoes, data, disciplina, onOptionsPress }: GabaritoCardProps) {
-  const iconColor = getDisciplinaIconColor(disciplina);
+
+
+export function GabaritoCard({ titulo, descricao, questoes, data, onPress, onOptionsPress }: GabaritoCardProps) {
+  const iconColor = '#7C3AED';
 
   return (
     <View style={styles.card}>
+      <TouchableOpacity style={styles.cardContentWrapper} onPress={onPress} activeOpacity={0.85}>
+        <View style={styles.icon}>
+          <IconSymbol name="assignment.fill" size={30} color={iconColor} />
+        </View>
+        <View style={styles.cardContent}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>{titulo}</Text>
+          </View>
+
+          <Text style={styles.cardDescription}>{descricao}</Text>
+
+          <View style={styles.cardFooter}>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{questoes} Questoes</Text>
+            </View>
+            <Text style={styles.footerDate}>{data}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+
       <TouchableOpacity
         style={styles.optionsButton}
         onPress={onOptionsPress}
-        hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+        hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
       >
-        <IconSymbol name="ellipsis" size={18} color="#6B7280" />
+        <IconSymbol name="ellipsis" size={20} color="#4F46E5" />
       </TouchableOpacity>
-
-      <View style={styles.icon}>
-        <IconSymbol name="description" size={30} color={iconColor} />
-      </View>
-      <View style={styles.cardContent}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>{titulo}</Text>
-        </View>
-
-        <Text style={styles.cardDescription}>{descricao}</Text>
-
-        <View style={styles.cardFooter}>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>{questoes} Questoes</Text>
-          </View>
-          <Text style={styles.footerDate}>{data}</Text>
-        </View>
-      </View>
     </View>
   );
 }
@@ -63,6 +68,12 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 2,
     position: 'relative',
+  },
+  cardContentWrapper: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    zIndex: 0,
   },
   cardHeader: {
     marginBottom: 6,
@@ -117,11 +128,19 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 10,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 34,
+    height: 34,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#EEF2FF',
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    elevation: 5,
+    zIndex: 10,
   },
 });
