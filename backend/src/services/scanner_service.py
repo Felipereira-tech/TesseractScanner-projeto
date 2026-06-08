@@ -2,6 +2,8 @@ import uuid
 from src.config.database import supabase
 from src.services.scanner import CartaoScanner
 
+PONTUACAO_MAXIMA = 5
+
 def processar_correcao(prova_id, nome_aluno, file_contents):
     # 1. Busca Prova
     prova_res = supabase.table("provas").select("*").eq("id", prova_id).maybe_single().execute()
@@ -24,7 +26,7 @@ def processar_correcao(prova_id, nome_aluno, file_contents):
     acertos, respostas_lidas, img_buffer = scanner.processar(file_contents)
 
     # 4. Salvar Nota e Retornar
-    nota_final = round((acertos / total_questoes) * 10, 2)
+    nota_final = round((acertos / total_questoes) * PONTUACAO_MAXIMA, 2)
     supabase.table("notas").insert({
         "nome_aluno": nome_aluno,
         "id_prova": prova_id,
