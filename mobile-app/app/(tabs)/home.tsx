@@ -1,7 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import Header from '@/components/header';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ScanLine, FileText, BarChart3, Settings, ListChecks } from 'lucide-react-native';
+import { ScanLine, FileText, BarChart3, ListChecks } from 'lucide-react-native';
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -330,24 +330,6 @@ export default function HomeScreen() {
                   </View>
                   <Text style={styles.gridTitle}>Resultados</Text>
                   <Text style={styles.gridDesc}>Ver Notas</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={{ width: '50%' }}>
-                <View style={styles.gridCard}>
-                  <View style={styles.iconBoxYelow}>
-                    <Settings color="#d97706" size={24} />
-                  </View>
-                  <Text style={styles.gridTitle}>Configurações</Text>
-                  <Text style={styles.gridDesc}>Ajustes</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={{ width: '50%' }}>
-                <View style={styles.gridCardEmpty}>
-                  <Text style={styles.plus}>+</Text>
-                  <Text style={styles.gridTitle}>Em breve</Text>
-                  <Text style={styles.gridDesc}>Novidades</Text>
                 </View>
               </TouchableOpacity>
             </View>
