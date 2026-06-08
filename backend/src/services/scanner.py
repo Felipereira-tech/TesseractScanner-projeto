@@ -210,8 +210,8 @@ class CartaoScanner:
         row_height = (self.height_img - header_height) // self.questions
         area_alt = self.width_img - self.numero_width_px
         secW = area_alt // self.choices
-        rx = int(secW * 0.22)
-        ry = int(row_height * 0.22)
+        rx = int(secW * 0.32)
+        ry = int(row_height * 0.35)
 
         for x in range(self.questions):
             myAns = myIndex[x]
