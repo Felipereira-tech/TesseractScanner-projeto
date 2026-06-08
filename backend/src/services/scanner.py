@@ -187,48 +187,61 @@ class CartaoScanner:
         return acertos, myIndex, buffer
 
     def _extrair_bolinhas(self, imgThresh):
+        """
+        Função auxiliar interna: Fatia a imagem binarizada baseando-se em cálculos de 
+        proporções, gerando uma lista com os blocos individuais de cada alternativa.
+        """
         header_height = int(self.height_img * self.header_pct)
-        
-        # Usa o número real de questões desta coluna em vez do fixo 24
-        row_height = (self.height_img - header_height) // self.questions
+        row_height = (self.height_img - header_height) // self.q_per_col
         boxes = []
-
         for r in range(self.questions):
             y_start = header_height + r * row_height
             y_end = y_start + row_height
+            # Recorta a linha correspondente à questão, pulando a largura reservada para o número da questão
             row_img = imgThresh[y_start:y_end, self.numero_width_px:]
-            cw = row_img.shape[1] // self.choices
+            cw = row_img.shape[1] // self.choices # Calcula a largura exata de cada alternativa na linha
             for ch in range(self.choices):
+                # Recorta o bloco exato da alternativa corrente (A, B, C, D ou E)
                 box = row_img[:, ch * cw:(ch+1) * cw]
                 boxes.append(box)
         return boxes
 
     def _desenhar_respostas(self, img, myIndex, grading):
-        header_height = int(self.height_img * self.header_pct)
-        
-        # Mesmo ajuste aqui — usa self.questions em vez de self.q_per_col
-        row_height = (self.height_img - header_height) // self.questions
-        area_alt = self.width_img - self.numero_width_px
-        secW = area_alt // self.choices
-        rx = int(secW * 0.22)
-        ry = int(row_height * 0.22)
+        """
+        Função auxiliar interna: Desenha elipses coloridas sobre a folha de respostas original:
+        - Verde: O aluno acertou a questão.
+        - Vermelho: O aluno marcou essa alternativa incorreta.
+        - Azul: Indica qual era a alternativa correta em caso de erro do aluno.
+        """
+        header_height = int(self.height_img * self.header_pct) 
+        row_height = (self.height_img - header_height) // self.q_per_col 
+        area_alt = self.width_img - self.numero_width_px 
+        secW = area_alt // self.choices 
+        rx = int(secW * 0.32) # Define proporcionalmente o raio X da elipse indicadora
+        ry = int(row_height * 0.35) # Define proporcionalmente o raio Y da elipse indicadora
 
         for x in range(self.questions):
-            myAns = myIndex[x]
+            myAns = myIndex[x] 
+
+            # Pula o desenho para questões que foram deixadas totalmente em branco
             if myAns == -1:
                 continue
 
             correta = self.gabarito[x]
-            r = x % self.questions
-            cY = header_height + r * row_height + row_height // 2
-            cX = self.numero_width_px + correta * secW + secW // 2
+            r = x % self.q_per_col
+            cY = header_height + r * row_height + row_height // 2 # Centro Y da linha corrente
+            cX = self.numero_width_px + correta * secW + secW // 2 # Centro X da alternativa gabarito
 
             if grading[x] == 1:
+                # Desenha uma elipse sólida verde sobre a resposta correta assinalada pelo aluno
                 cv2.ellipse(img, (cX, cY), (rx, ry), 0, 0, 360, (0, 255, 0), cv2.FILLED)
             else:
+                # Se o aluno marcou uma alternativa errada e válida (maior ou igual a 0)
                 if myAns >= 0:
                     alunoX = self.numero_width_px + myAns * secW + secW // 2
+                    # Desenha uma elipse sólida vermelha na alternativa errada que o aluno escolheu
                     cv2.ellipse(img, (alunoX, cY), (rx, ry), 0, 0, 360, (0, 0, 255), cv2.FILLED)
+                # Desenha uma elipse sólida azul na alternativa que era a resposta certa do gabarito
                 cv2.ellipse(img, (cX, cY), (rx, ry), 0, 0, 360, (255, 0, 0), cv2.FILLED)
 
         return img
