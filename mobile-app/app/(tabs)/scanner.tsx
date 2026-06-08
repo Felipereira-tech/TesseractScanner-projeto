@@ -4,7 +4,6 @@ import {
   Pressable, TextInput, Alert, ActivityIndicator, Dimensions, BackHandler
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { Picker } from '@react-native-picker/picker';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -95,8 +94,12 @@ export default function ScannerScreen() {
       Alert.alert('Nome obrigatório', 'Informe o nome do aluno antes de processar.');
       return;
     }
-    if (!turmaSelecionada) {
-      Alert.alert('Turma obrigatória', 'Selecione a turma do aluno antes de processar.');
+    if (turmas.length > 0 && !turmaSelecionada) {
+      Alert.alert('Aguarde', 'Carregando turma...');
+      return;
+    }
+    if (turmas.length === 0) {
+      Alert.alert('Turma indisponível', 'Nenhuma turma cadastrada disponível para correção.');
       return;
     }
     if (!cameraRef.current) {
@@ -261,26 +264,10 @@ export default function ScannerScreen() {
               style={styles.input}
             />
 
-            <Text style={[styles.sectionLabel, { marginTop: 16 }]}>Turma</Text>
-            {turmas.length === 0 ? (
-              <ActivityIndicator color="#7C3AED" style={{ marginTop: 8 }} />
-            ) : (
-              <View style={styles.pickerWrapper}>
-                <Picker
-                  selectedValue={turmaSelecionada}
-                  onValueChange={(v) => setTurmaSelecionada(v)}
-                  mode="dropdown"
-                  dropdownIconColor="#7C3AED"
-                  style={styles.picker}
-                >
-                  {turmas.map((t) => (
-                    <Picker.Item
-                      key={t.id}
-                      label={`${t.nome_turma} - ${t.ano_letivo}`}
-                      value={t.id}
-                    />
-                  ))}
-                </Picker>
+            {/* A seleção de turma foi removida da interface. A turma padrão será usada automaticamente quando disponível. */}
+            {turmas.length === 0 && (
+              <View style={styles.hiddenNotice}>
+                <Text style={styles.hiddenNoticeText}>Aguarde: carregando turma padrão...</Text>
               </View>
             )}
           </View>
@@ -367,6 +354,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF', overflow: 'hidden',
   },
   picker: { width: '100%' },
+  hiddenNotice: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: '#F3F4F6',
+  },
+  hiddenNoticeText: {
+    color: '#6B7280',
+    fontSize: 13,
+  },
   cameraCard: {
     width: '100%', borderRadius: 24, backgroundColor: '#FFFFFF',
     padding: 16, shadowColor: '#000', shadowOpacity: 0.08,

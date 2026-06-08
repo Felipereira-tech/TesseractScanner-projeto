@@ -47,23 +47,33 @@ export default function CriarGabaritoScreen() {
       setProvaId(Number(params.id));
       setNomeProva(params.nome_prova ?? '');
       setDescricaoProva(params.descricao ?? '');
-      setNumeroQuestoes(Number(params.quantidade_questoes ?? DEFAULT_QUESTOES));
+      const qtd = Number(params.quantidade_questoes ?? DEFAULT_QUESTOES);
+      setNumeroQuestoes(qtd);
 
-      if (params.respostas) {
-        const respostaLista = params.respostas.split(',').map((item) => item.trim()) as Alternativa[];
-        setRespostas(respostaLista);
-      }
-    }
-  }, [params]);
-
-  useEffect(() => {
-    // Se estiver editando, tenta buscar o gabarito oficial do backend
-    if (params?.id) {
-      (async () => {
+      // Tenta carregar respostas dos params primeiro
+      if (params.respostas && params.respostas.length > 0) {
         try {
-          const g = await ProvasAPI.buscarGabarito(Number(params.id));
+          const respostaLista = params.respostas
+            .split(',')
+            .map((item) => item.trim().toUpperCase())
+            .filter((item) => ALTERNATIVAS.includes(item as Alternativa)) as Alternativa[];
+          
+          // Preenche o resto com null se necessário
+          if (respostaLista.length < qtd) {
+            setRespostas([...respostaLista, ...createEmptyAnswers(qtd - respostaLista.length)]);
+          } else {
+            setRespostas(respostaLista.slice(0, qtd));
+          }
+          return; // Se conseguiu dos params, não busca do backend
+        } catch (err) {
+          console.warn('Erro ao parsear respostas:', err);
+        }
+      }
+
+      // Se não encontrou nos params ou falhou, busca do backend
+      ProvasAPI.buscarGabarito(Number(params.id))
+        .then((g) => {
           if (g && g.respostas) {
-            // O backend pode retornar respostas como números (0..4) ou letras
             const mapped = (g.respostas as Array<any>).map((r) => {
               if (typeof r === 'number') return ALTERNATIVAS[r] ?? null;
               if (typeof r === 'string') {
@@ -74,29 +84,31 @@ export default function CriarGabaritoScreen() {
               return null;
             });
 
-            setRespostas((prev) => {
-              const q = Number(params.quantidade_questoes ?? DEFAULT_QUESTOES);
-              if (mapped.length === q) return mapped as Array<Alternativa | null>;
-              if (mapped.length > q) return (mapped as Array<Alternativa | null>).slice(0, q);
-              return [...(mapped as Array<Alternativa | null>), ...createEmptyAnswers(q - mapped.length)];
-            });
+            if (mapped.length === qtd) {
+              setRespostas(mapped as Array<Alternativa | null>);
+            } else if (mapped.length > qtd) {
+              setRespostas((mapped as Array<Alternativa | null>).slice(0, qtd));
+            } else {
+              setRespostas([...(mapped as Array<Alternativa | null>), ...createEmptyAnswers(qtd - mapped.length)]);
+            }
           }
-        } catch (err) {
-          // falha silenciosa — continua usando os params ou estado atual
+        })
+        .catch((err) => {
           console.warn('Não foi possível buscar gabarito:', err);
-        }
-      })();
+        });
     }
-  }, [params]);
+  }, [params?.id]); // Só depende do ID para evitar re-runs
 
   useEffect(() => {
-    if (numeroQuestoes <= 0) { setRespostas([]); return; }
-    setRespostas((prev) => {
-      if (prev.length === numeroQuestoes) return prev;
-      if (prev.length > numeroQuestoes) return prev.slice(0, numeroQuestoes);
-      return [...prev, ...createEmptyAnswers(numeroQuestoes - prev.length)];
-    });
-  }, [numeroQuestoes]);
+    // Ajusta tamanho das respostas quando numeroQuestoes muda, mas só se não estiver editando
+    if (!isEditing && numeroQuestoes > 0) {
+      setRespostas((prev) => {
+        if (prev.length === numeroQuestoes) return prev;
+        if (prev.length > numeroQuestoes) return prev.slice(0, numeroQuestoes);
+        return [...prev, ...createEmptyAnswers(numeroQuestoes - prev.length)];
+      });
+    }
+  }, [numeroQuestoes, isEditing]);
 
   const selectAlternativa = (index: number, alternativa: Alternativa) => {
     setRespostas((prev) => {
@@ -261,11 +273,11 @@ export default function CriarGabaritoScreen() {
           {numeroQuestoes <= 0 ? (
             <Text style={styles.emptyText}>Defina um número de questões para montar os subcards.</Text>
           ) : (
-            <View style={styles.questionsGrid}>
+            <View style={styles.questionsList}>
               {respostas.map((resposta, index) => (
                 <View key={`questao-${index + 1}`} style={styles.questionCard}>
                   <Text style={styles.questionTitle}>Questão {index + 1}</Text>
-                  <View style={styles.alternativasRow}>
+                  <View style={styles.alternativasList}>
                     {ALTERNATIVAS.map((alt) => {
                       const selected = resposta === alt;
                       return (
@@ -318,17 +330,18 @@ const styles = StyleSheet.create({
   },
   select: { width: '100%' },
   fieldHint: { marginTop: 6, fontSize: 12, color: '#6B7280' },
-  questionsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
+  questionsList: { flexDirection: 'column', gap: 10 },
   questionCard: {
     borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 14,
-    padding: 12, width: '48.5%', backgroundColor: '#FBFDFF',
+    padding: 12, width: '100%', backgroundColor: '#FBFDFF',
   },
   questionTitle: { fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 10 },
-  alternativasRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  alternativasList: { flexDirection: 'row', gap: 6, justifyContent: 'space-between' },
   alternativaButton: {
-    width: '30%', minHeight: 36, borderRadius: 10, borderWidth: 1,
+    flex: 1, minHeight: 44, borderRadius: 10, borderWidth: 1,
     borderColor: '#CBD5E1', backgroundColor: '#FFFFFF',
     alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 10,
   },
   alternativaText: { fontSize: 14, fontWeight: '800', color: '#475569' },
   alternativaTextSelected: { color: '#FFFFFF' },

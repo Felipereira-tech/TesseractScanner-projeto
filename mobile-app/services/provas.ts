@@ -14,6 +14,7 @@ export type Prova = {
   nome_prova: string;
   descricao: string;
   quantidade_questoes: number;
+  respostas?: Array<string | number>;
   created_at?: string;
 };
 

@@ -43,8 +43,9 @@ export default function GabaritosScreen() {
         {
           text: 'Editar',
           onPress: () => {
+            const respostasParam = item.respostas ? encodeURIComponent(item.respostas.join(',')) : '';
             router.push(
-              `/criar-gabarito?id=${item.id}&nome_prova=${encodeURIComponent(item.nome_prova)}&descricao=${encodeURIComponent(item.descricao ?? '')}&quantidade_questoes=${item.quantidade_questoes}`
+              `/criar-gabarito?id=${item.id}&nome_prova=${encodeURIComponent(item.nome_prova)}&descricao=${encodeURIComponent(item.descricao ?? '')}&quantidade_questoes=${item.quantidade_questoes}&respostas=${respostasParam}`
             );
           },
         },
