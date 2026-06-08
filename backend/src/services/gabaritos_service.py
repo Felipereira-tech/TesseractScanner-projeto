@@ -210,25 +210,33 @@ class GabaritoService:
         if coluna < 0 or coluna >= num_colunas:
             raise ValueError(f"Coluna {coluna} inválida. Esta prova tem {num_colunas} colunas.")
 
-        # Quantas questões nesta coluna
+        # Questões reais desta coluna (para saber quantas retornar)
         inicio = coluna * q_per_col
         fim = min(inicio + q_per_col, total_questoes)
-        questoes_nesta_coluna = fim - inicio
+        questoes_reais = fim - inicio
 
-        # Scanner processa só as questões desta coluna
-        # Gabarito fictício (não é usado para comparação aqui)
-        gabarito_dummy = [0] * questoes_nesta_coluna
+        # Máximo físico impresso no cartão — SEMPRE fixo independente da prova
+        # Colunas 0, 1, 2 → 24 espaços físicos
+        # Coluna 3 (última) → 18 espaços físicos
+        MAX_FISICO_POR_COLUNA = [24, 24, 24, 18]
+        max_fisico = MAX_FISICO_POR_COLUNA[coluna]
+
+        # Scanner divide o grid pelo máximo físico real do cartão
+        gabarito_dummy = [0] * max_fisico
         scanner = CartaoScanner(
-            total_questoes=questoes_nesta_coluna,
+            total_questoes=max_fisico,
             gabarito=gabarito_dummy,
             alternativas=5,
         )
         _, respostas_lidas, imagem_corrigida = scanner.processar(imagem_bytes)
 
+        # Retorna só as questões reais, ignorando espaços em branco do cartão
+        respostas_coluna = respostas_lidas[:questoes_reais]
+
         preview = base64.b64encode(imagem_corrigida).decode("utf-8")
 
         return {
-            "respostas_coluna": respostas_lidas,
+            "respostas_coluna": respostas_coluna,
             "preview_coluna": f"data:image/jpeg;base64,{preview}",
         }
         
