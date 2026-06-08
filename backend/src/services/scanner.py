@@ -13,7 +13,7 @@ class CartaoScanner:
         self.min_area = 1000000
         self.header_pct = 0.04
         self.numero_width_px = 117
-        self.limiar_pct = 0.25
+        self.limiar_pct = 0.15
         self.dominancia = 1.10
 
     def processar(self, img_bytes):
@@ -44,6 +44,15 @@ class CartaoScanner:
 
         if len(rectCon) == 0 or cv2.contourArea(rectCon[0]) < self.min_area:
             raise ValueError("Cartão-resposta não detectado com clareza. Ajuste a iluminação e tente novamente.")
+
+        # === NOVO: Lógica para desenhar e salvar os contornos encontrados ===
+        imgContours = img.copy()
+        # Desenha TODOS os contornos detectados em Azul (espessura 2)
+        cv2.drawContours(imgContours, contours, -1, (255, 0, 0), 2)
+        # Destaca o maior contorno retangular em Verde (espessura 4)
+        cv2.drawContours(imgContours, [rectCon[0]], -1, (0, 255, 0), 4)
+        cv2.imwrite("debug_05_contornos.jpg", imgContours)
+        # ===================================================================
 
         biggestContour = utils.getCornerPoints(rectCon[0])
         if biggestContour.size != 8:
