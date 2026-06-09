@@ -28,6 +28,7 @@
     },
     "plugins": [
       "expo-router",
+      "@react-native-picker/picker",
       [
         "expo-splash-screen",
         {
