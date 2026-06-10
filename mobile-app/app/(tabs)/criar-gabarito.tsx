@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Picker } from '@react-native-picker/picker';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
@@ -38,6 +37,7 @@ export default function CriarGabaritoScreen() {
   const [numeroQuestoes, setNumeroQuestoes] = useState(DEFAULT_QUESTOES);
   const [respostas, setRespostas] = useState<Array<Alternativa | null>>(createEmptyAnswers(DEFAULT_QUESTOES));
   const [provaId, setProvaId] = useState<number | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const isEditing = Boolean(params?.id);
 
   const accentColor = '#7C3AED';
@@ -50,27 +50,24 @@ export default function CriarGabaritoScreen() {
       const qtd = Number(params.quantidade_questoes ?? DEFAULT_QUESTOES);
       setNumeroQuestoes(qtd);
 
-      // Tenta carregar respostas dos params primeiro
       if (params.respostas && params.respostas.length > 0) {
         try {
           const respostaLista = params.respostas
             .split(',')
             .map((item) => item.trim().toUpperCase())
             .filter((item) => ALTERNATIVAS.includes(item as Alternativa)) as Alternativa[];
-          
-          // Preenche o resto com null se necessário
+
           if (respostaLista.length < qtd) {
             setRespostas([...respostaLista, ...createEmptyAnswers(qtd - respostaLista.length)]);
           } else {
             setRespostas(respostaLista.slice(0, qtd));
           }
-          return; // Se conseguiu dos params, não busca do backend
+          return;
         } catch (err) {
           console.warn('Erro ao parsear respostas:', err);
         }
       }
 
-      // Se não encontrou nos params ou falhou, busca do backend
       ProvasAPI.buscarGabarito(Number(params.id))
         .then((g) => {
           if (g && g.respostas) {
@@ -97,10 +94,9 @@ export default function CriarGabaritoScreen() {
           console.warn('Não foi possível buscar gabarito:', err);
         });
     }
-  }, [params?.id]); // Só depende do ID para evitar re-runs
+  }, [params?.id]);
 
   useEffect(() => {
-    // Ajusta tamanho das respostas quando numeroQuestoes muda, mas só se não estiver editando
     if (!isEditing && numeroQuestoes > 0) {
       setRespostas((prev) => {
         if (prev.length === numeroQuestoes) return prev;
@@ -133,7 +129,6 @@ export default function CriarGabaritoScreen() {
     );
   };
 
-  // PONTO CRÍTICO: agora é async
   const handleSalvar = async () => {
     const nomeTratado = nomeProva.trim();
 
@@ -196,7 +191,7 @@ export default function CriarGabaritoScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.card}>
+        <View style={[styles.card, { zIndex: 999 }]}>
           <Text style={styles.cardTitle}>Informações do gabarito</Text>
 
           <View style={styles.fieldGroup}>
@@ -221,20 +216,41 @@ export default function CriarGabaritoScreen() {
             />
           </View>
 
-          <View style={styles.fieldGroup}>
+          <View style={[styles.fieldGroup, { zIndex: 999 }]}>
             <Text style={styles.fieldLabel}>Número de questões</Text>
-            <View style={styles.selectWrapper}>
-              <Picker
-                selectedValue={numeroQuestoes}
-                onValueChange={(v) => setNumeroQuestoes(Number(v))}
-                mode="dropdown"
-                dropdownIconColor={accentColor}
-                style={styles.select}
+            <View style={[styles.selectWrapper, { zIndex: 999 }]}>
+              <TouchableOpacity
+                style={styles.pickerButton}
+                onPress={() => setPickerOpen(!pickerOpen)}
               >
-                {QUESTOES_OPTIONS.map((q) => (
-                  <Picker.Item key={q} label={`${q} questões`} value={q} />
-                ))}
-              </Picker>
+                <Text style={styles.pickerText}>{numeroQuestoes} questões</Text>
+                <Text style={styles.pickerArrow}>▼</Text>
+              </TouchableOpacity>
+
+              {pickerOpen && (
+                <View style={styles.dropdownList}>
+                  {QUESTOES_OPTIONS.map((q) => (
+                    <TouchableOpacity
+                      key={q}
+                      style={[
+                        styles.dropdownItem,
+                        numeroQuestoes === q && styles.dropdownItemSelected,
+                      ]}
+                      onPress={() => {
+                        setNumeroQuestoes(q);
+                        setPickerOpen(false);
+                      }}
+                    >
+                      <Text style={[
+                        styles.dropdownItemText,
+                        numeroQuestoes === q && styles.dropdownItemTextSelected,
+                      ]}>
+                        {q} questões
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
             </View>
             <Text style={styles.fieldHint}>
               Selecione entre {MIN_QUESTOES} e {MAX_QUESTOES} questões.
@@ -246,7 +262,6 @@ export default function CriarGabaritoScreen() {
           <TouchableOpacity style={styles.secondaryButton} onPress={resetForm} disabled={salvando}>
             <Text style={styles.secondaryButtonText}>Limpar</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={[styles.secondaryButton, { borderColor: accentColor }]}
             onPress={handleAleatorio}
@@ -254,7 +269,6 @@ export default function CriarGabaritoScreen() {
           >
             <Text style={[styles.secondaryButtonText, { color: accentColor }]}>Aleatório</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={[styles.primaryButton, { backgroundColor: accentColor, opacity: salvando ? 0.6 : 1 }]}
             onPress={handleSalvar}
@@ -269,7 +283,6 @@ export default function CriarGabaritoScreen() {
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Respostas por questão</Text>
-
           {numeroQuestoes <= 0 ? (
             <Text style={styles.emptyText}>Defina um número de questões para montar os subcards.</Text>
           ) : (
@@ -324,11 +337,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF', paddingHorizontal: 12,
     paddingVertical: 10, fontSize: 14, color: '#111827',
   },
-  selectWrapper: {
-    borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 12,
-    backgroundColor: '#FFFFFF', overflow: 'hidden',
-  },
-  select: { width: '100%' },
+  selectWrapper: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 12, backgroundColor: '#FFFFFF' },
+  pickerButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12 },
+  pickerText: { color: '#111827', fontSize: 14, flex: 1 },
+  pickerArrow: { color: '#7C3AED', fontSize: 12, marginLeft: 8 },
+  dropdownList: { borderTopWidth: 1, borderColor: '#E5E7EB' },
+  dropdownItem: { padding: 12, borderBottomWidth: 1, borderColor: '#F1F5F9' },
+  dropdownItemSelected: { backgroundColor: '#F3EEFF' },
+  dropdownItemText: { color: '#111827', fontSize: 14 },
+  dropdownItemTextSelected: { color: '#7C3AED', fontWeight: '700' },
   fieldHint: { marginTop: 6, fontSize: 12, color: '#6B7280' },
   questionsList: { flexDirection: 'column', gap: 10 },
   questionCard: {
@@ -340,8 +357,7 @@ const styles = StyleSheet.create({
   alternativaButton: {
     flex: 1, minHeight: 44, borderRadius: 10, borderWidth: 1,
     borderColor: '#CBD5E1', backgroundColor: '#FFFFFF',
-    alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 10,
+    alignItems: 'center', justifyContent: 'center', paddingVertical: 10,
   },
   alternativaText: { fontSize: 14, fontWeight: '800', color: '#475569' },
   alternativaTextSelected: { color: '#FFFFFF' },

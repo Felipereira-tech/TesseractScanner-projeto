@@ -7,7 +7,6 @@ import { useRouter } from 'expo-router';
 import { ProvasAPI } from '@/services/provas';
 import { NotasAPI } from '@/services/notas';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Picker } from '@react-native-picker/picker';
 
 export default function ResultadosScreen() {
   const router = useRouter();
@@ -17,6 +16,7 @@ export default function ResultadosScreen() {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -62,7 +62,7 @@ export default function ResultadosScreen() {
         } catch (err) {
           Alert.alert('Erro', 'Não foi possível excluir a nota.');
         }
-      } }
+      }}
     ]);
   };
 
@@ -85,11 +85,40 @@ export default function ResultadosScreen() {
       <View style={styles.card}>
         <Text style={styles.label}>Prova / Gabarito</Text>
         <View style={styles.pickerWrapper}>
-          <Picker selectedValue={selectedProva} onValueChange={(v) => setSelectedProva(Number(v))}>
-            {provas.map((p) => (
-              <Picker.Item key={p.id} label={p.nome_prova} value={p.id} />
-            ))}
-          </Picker>
+          <TouchableOpacity
+            style={styles.pickerButton}
+            onPress={() => setPickerOpen(!pickerOpen)}
+          >
+            <Text style={styles.pickerText}>
+              {provas.find(p => p.id === selectedProva)?.nome_prova || 'Selecione uma prova'}
+            </Text>
+            <Text style={styles.pickerArrow}>▼</Text>
+          </TouchableOpacity>
+
+          {pickerOpen && (
+            <View style={styles.dropdownList}>
+              {provas.map((p) => (
+                <TouchableOpacity
+                  key={p.id}
+                  style={[
+                    styles.dropdownItem,
+                    selectedProva === p.id && styles.dropdownItemSelected
+                  ]}
+                  onPress={() => {
+                    setSelectedProva(p.id);
+                    setPickerOpen(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.dropdownItemText,
+                    selectedProva === p.id && styles.dropdownItemTextSelected
+                  ]}>
+                    {p.nome_prova}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
         </View>
       </View>
 
@@ -104,7 +133,6 @@ export default function ResultadosScreen() {
                   <Text style={styles.name}>{item.nome_aluno}</Text>
                   <Text style={styles.meta}>Acertos: {item.acertos} • Nota: {item.nota}</Text>
                 </View>
-
                 <View style={styles.actions}>
                   <TouchableOpacity style={styles.iconBtn} onPress={() => handleEdit(item)}>
                     <IconSymbol name="doc.text" size={18} color="#374151" />
@@ -126,7 +154,6 @@ export default function ResultadosScreen() {
             <TextInput style={styles.input} value={editing?.nome_aluno} onChangeText={(t) => setEditing((s:any)=>({...s, nome_aluno: t}))} placeholder="Nome do aluno" />
             <TextInput style={styles.input} value={String(editing?.acertos ?? '')} onChangeText={(t) => setEditing((s:any)=>({...s, acertos: t}))} placeholder="Acertos" keyboardType="numeric" />
             <TextInput style={styles.input} value={String(editing?.nota ?? '')} onChangeText={(t) => setEditing((s:any)=>({...s, nota: t}))} placeholder="Nota" keyboardType="numeric" />
-
             <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
               <TouchableOpacity style={styles.secondaryButton} onPress={() => { setModalVisible(false); setEditing(null); }}>
                 <Text style={styles.secondaryButtonText}>Cancelar</Text>
@@ -146,7 +173,15 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F7F8FC' },
   card: { margin: 16, borderRadius: 14, backgroundColor: '#fff', padding: 12, elevation: 3 },
   label: { fontWeight: '700', color: '#111827', marginBottom: 8 },
-  pickerWrapper: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, overflow: 'hidden', backgroundColor: '#fff' },
+  pickerWrapper: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, backgroundColor: '#fff' },
+  pickerButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12 },
+  pickerText: { color: '#111827', fontSize: 15, flex: 1 },
+  pickerArrow: { color: '#7C3AED', fontSize: 12, marginLeft: 8 },
+  dropdownList: { borderTopWidth: 1, borderColor: '#E5E7EB', maxHeight: 200 },
+  dropdownItem: { padding: 12, borderBottomWidth: 1, borderColor: '#F1F5F9' },
+  dropdownItemSelected: { backgroundColor: '#F3EEFF' },
+  dropdownItemText: { color: '#111827', fontSize: 15 },
+  dropdownItemTextSelected: { color: '#7C3AED', fontWeight: '700' },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderColor: '#F1F5F9' },
   name: { fontWeight: '700', color: '#0F172A' },
   meta: { color: '#6B7280', marginTop: 4 },
