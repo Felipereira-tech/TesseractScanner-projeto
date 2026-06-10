@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { SafeAreaView, StyleSheet, View, Text, Platform, StatusBar } from 'react-native';
+import useResponsive from '@/hooks/useResponsive';
+import { COLORS, FONT_SIZES, BORDER_RADIUS, SPACING } from '@/constants/app';
 
 type HeaderProps = {
   title: string;
@@ -9,6 +11,9 @@ type HeaderProps = {
 };
 
 export default function Header({ title, subtitle, brand, rightAction }: HeaderProps) {
+  const { moderateScale } = useResponsive();
+  const styles = createStyles(moderateScale);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.brandContainer}>{brand}</View>
@@ -25,37 +30,38 @@ export default function Header({ title, subtitle, brand, rightAction }: HeaderPr
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (ms: (n:number)=>number) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + 10 : 10,
-    backgroundColor: 'white',
+    padding: ms(SPACING.md),
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) + ms(SPACING.md) : ms(SPACING.md),
+    backgroundColor: COLORS.white,
   },
   brandContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: ms(44),
+    height: ms(44),
+    borderRadius: ms(BORDER_RADIUS.md),
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: ms(SPACING.md),
   },
   textContainer: {
     flex: 1,
     flexDirection: 'column',
-    paddingVertical: 4,
+    paddingVertical: ms(4),
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: ms(FONT_SIZES.xl),
+    fontWeight: '700',
+    color: COLORS.text.primary,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
+    fontSize: ms(FONT_SIZES.sm),
+    color: COLORS.text.secondary,
+    marginTop: ms(2),
   },
   rightAction: {
-    marginLeft: 10,
+    marginLeft: ms(SPACING.md),
   },
 });

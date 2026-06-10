@@ -5,6 +5,8 @@ import { HeaderBackButton } from '@react-navigation/elements';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
 import Header from '@/components/header';
+import useResponsive from '@/hooks/useResponsive';
+import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZES, SHADOWS, VALIDATION } from '@/constants/app';
 import { useGabaritos } from '@/context/GabaritosContext';
 import { ProvasAPI } from '@/services/provas';
 
@@ -22,6 +24,7 @@ function createEmptyAnswers(total: number): Array<Alternativa | null> {
 
 export default function CriarGabaritoScreen() {
   const router = useRouter();
+  const { moderateScale: ms } = useResponsive();
   const params = useLocalSearchParams<{
     id?: string;
     nome_prova?: string;
@@ -44,54 +47,79 @@ export default function CriarGabaritoScreen() {
 
   useEffect(() => {
     if (params?.id) {
-      setProvaId(Number(params.id));
-      setNomeProva(params.nome_prova ?? '');
-      setDescricaoProva(params.descricao ?? '');
+      const provaId = Number(params.id);
+      setProvaId(provaId);
+
+      // Decodificar parâmetros com fallback para valores brutos
+      const nome = params.nome_prova ? decodeURIComponent(String(params.nome_prova)) : '';
+      const descricao = params.descricao ? decodeURIComponent(String(params.descricao)) : '';
       const qtd = Number(params.quantidade_questoes ?? DEFAULT_QUESTOES);
+
+      setNomeProva(nome);
+      setDescricaoProva(descricao);
       setNumeroQuestoes(qtd);
 
-      if (params.respostas && params.respostas.length > 0) {
+      console.log(`[Edição] Carregando gabarito ID=${provaId}, qtd=${qtd}`);
+
+      // Tentar carregar respostas dos parâmetros primeiro
+      if (params.respostas && String(params.respostas).length > 0) {
         try {
-          const respostaLista = params.respostas
+          const raw = typeof params.respostas === 'string' ? decodeURIComponent(params.respostas) : String(params.respostas);
+          const respostaLista = raw
             .split(',')
             .map((item) => item.trim().toUpperCase())
             .filter((item) => ALTERNATIVAS.includes(item as Alternativa)) as Alternativa[];
 
-          if (respostaLista.length < qtd) {
-            setRespostas([...respostaLista, ...createEmptyAnswers(qtd - respostaLista.length)]);
-          } else {
-            setRespostas(respostaLista.slice(0, qtd));
+          if (respostaLista.length > 0) {
+            console.log(`[Edição] Carregadas ${respostaLista.length} respostas dos parâmetros`);
+            if (respostaLista.length < qtd) {
+              setRespostas([...respostaLista, ...createEmptyAnswers(qtd - respostaLista.length)]);
+            } else {
+              setRespostas(respostaLista.slice(0, qtd));
+            }
+            return; // Sucesso, não precisa buscar do backend
           }
-          return;
         } catch (err) {
-          console.warn('Erro ao parsear respostas:', err);
+          console.warn('[Edição] Erro ao parsear respostas dos params, tentando backend:', err);
         }
       }
 
-      ProvasAPI.buscarGabarito(Number(params.id))
+      // Se não conseguiu pelos parâmetros, busca do backend
+      ProvasAPI.buscarGabarito(provaId)
         .then((g) => {
-          if (g && g.respostas) {
-            const mapped = (g.respostas as Array<any>).map((r) => {
-              if (typeof r === 'number') return ALTERNATIVAS[r] ?? null;
-              if (typeof r === 'string') {
-                const up = r.trim().toUpperCase();
-                if (ALTERNATIVAS.includes(up as Alternativa)) return up as Alternativa;
-                if (!isNaN(Number(r))) return ALTERNATIVAS[Number(r)] ?? null;
-              }
-              return null;
-            });
+          if (g) {
+            console.log('[Edição] Gabarito encontrado no backend:', g);
+            
+            if (g.respostas) {
+              const mapped = (g.respostas as Array<any>).map((r) => {
+                if (typeof r === 'number') return ALTERNATIVAS[r] ?? null;
+                if (typeof r === 'string') {
+                  const up = r.trim().toUpperCase();
+                  if (ALTERNATIVAS.includes(up as Alternativa)) return up as Alternativa;
+                  if (!isNaN(Number(r))) return ALTERNATIVAS[Number(r)] ?? null;
+                }
+                return null;
+              });
 
-            if (mapped.length === qtd) {
-              setRespostas(mapped as Array<Alternativa | null>);
-            } else if (mapped.length > qtd) {
-              setRespostas((mapped as Array<Alternativa | null>).slice(0, qtd));
+              console.log(`[Edição] Mapeadas ${mapped.length} respostas do backend`);
+
+              if (mapped.length === qtd) {
+                setRespostas(mapped as Array<Alternativa | null>);
+              } else if (mapped.length > qtd) {
+                setRespostas((mapped as Array<Alternativa | null>).slice(0, qtd));
+              } else {
+                setRespostas([...(mapped as Array<Alternativa | null>), ...createEmptyAnswers(qtd - mapped.length)]);
+              }
             } else {
-              setRespostas([...(mapped as Array<Alternativa | null>), ...createEmptyAnswers(qtd - mapped.length)]);
+              console.warn('[Edição] Gabarito não tem respostas, inicializando vazias');
+              setRespostas(createEmptyAnswers(qtd));
             }
+          } else {
+            console.warn('[Edição] Gabarito não encontrado no backend');
           }
         })
         .catch((err) => {
-          console.warn('Não foi possível buscar gabarito:', err);
+          console.warn('[Edição] Erro ao buscar gabarito do backend:', err);
         });
     }
   }, [params?.id]);
@@ -101,6 +129,18 @@ export default function CriarGabaritoScreen() {
       setRespostas((prev) => {
         if (prev.length === numeroQuestoes) return prev;
         if (prev.length > numeroQuestoes) return prev.slice(0, numeroQuestoes);
+        return [...prev, ...createEmptyAnswers(numeroQuestoes - prev.length)];
+      });
+    } else if (isEditing && numeroQuestoes > 0) {
+      // Em modo edição, sincroniza respostas com o novo número de questões
+      // mas preserva as respostas já preenchidas
+      setRespostas((prev) => {
+        if (prev.length === numeroQuestoes) return prev;
+        if (prev.length > numeroQuestoes) {
+          console.log(`[Edição] Reduzindo respostas de ${prev.length} para ${numeroQuestoes}`);
+          return prev.slice(0, numeroQuestoes);
+        }
+        console.log(`[Edição] Adicionando ${numeroQuestoes - prev.length} respostas vazias`);
         return [...prev, ...createEmptyAnswers(numeroQuestoes - prev.length)];
       });
     }
@@ -115,6 +155,10 @@ export default function CriarGabaritoScreen() {
   };
 
   const resetForm = () => {
+    if (isEditing) {
+      Alert.alert('Aviso', 'Você está em modo edição. Não é possível limpar o formulário nesta tela.');
+      return;
+    }
     setNomeProva('');
     setDescricaoProva('');
     setNumeroQuestoes(DEFAULT_QUESTOES);
@@ -151,36 +195,56 @@ export default function CriarGabaritoScreen() {
       setSalvando(true);
 
       if (isEditing && provaId) {
+        console.log(`[Salvar] Atualizando gabarito ID=${provaId}`, {
+          titulo: nomeTratado,
+          descricao: descricaoProva.trim(),
+          questoes: numeroQuestoes,
+          respostas: respostas.join(','),
+        });
+
         await updateGabarito(provaId, {
           titulo: nomeTratado,
           descricao: descricaoProva.trim() || `Gabarito com ${numeroQuestoes} questões`,
           questoes: numeroQuestoes,
           respostas: respostas as Alternativa[],
         });
+
+        console.log('[Salvar] Gabarito atualizado com sucesso!');
+        
         Alert.alert('Gabarito atualizado', `O gabarito "${nomeTratado}" foi atualizado com sucesso.`, [
           { text: 'OK', onPress: () => router.replace('/gabaritos') },
         ]);
       } else {
+        console.log('[Salvar] Criando novo gabarito', {
+          titulo: nomeTratado,
+          descricao: descricaoProva.trim(),
+          questoes: numeroQuestoes,
+          respostas: respostas.join(','),
+        });
+
         await addGabarito({
           titulo: nomeTratado,
           descricao: descricaoProva.trim() || `Gabarito com ${numeroQuestoes} questões`,
           questoes: numeroQuestoes,
           respostas: respostas as Alternativa[],
         });
+
+        console.log('[Salvar] Novo gabarito criado com sucesso!');
         resetForm();
         Alert.alert('Gabarito salvo', `O gabarito "${nomeTratado}" foi salvo com sucesso.`, [
           { text: 'OK', onPress: () => router.replace('/gabaritos') },
         ]);
       }
     } catch (err: any) {
-      Alert.alert(
-        'Erro ao salvar',
-        err?.response?.data?.mensagem ?? 'Não foi possível salvar o gabarito. Verifique sua conexão.'
-      );
+      console.error('[Salvar] Erro:', err);
+      const mensagemErro = err?.response?.data?.mensagem ?? err?.message ?? 'Não foi possível salvar o gabarito. Verifique sua conexão.';
+      Alert.alert('Erro ao salvar', mensagemErro);
     } finally {
       setSalvando(false);
     }
   };
+
+  const styles = createStyles(ms);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -320,54 +384,54 @@ export default function CriarGabaritoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F8FC' },
-  content: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 28, gap: 14 },
+const createStyles = (ms: (n:number)=>number) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.background },
+  content: { paddingHorizontal: ms(SPACING.lg), paddingTop: ms(SPACING.lg), paddingBottom: ms(SPACING.xxl), gap: ms(SPACING.md) },
   card: {
-    width: '100%', borderRadius: 20, backgroundColor: '#FFFFFF', padding: 16,
-    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 }, elevation: 4,
+    width: '100%', borderRadius: ms(BORDER_RADIUS.xxl), backgroundColor: COLORS.white, padding: ms(SPACING.lg),
+    shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: ms(14),
+    shadowOffset: { width: 0, height: ms(6) }, elevation: 4,
   },
-  cardTitle: { fontSize: 16, fontWeight: '800', color: '#111827', marginBottom: 14 },
-  fieldGroup: { marginBottom: 12 },
-  emptyText: { fontSize: 16, color: '#666', textAlign: 'center', paddingHorizontal: 16 },
-  fieldLabel: { fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 8 },
+  cardTitle: { fontSize: ms(FONT_SIZES.md), fontWeight: '800', color: COLORS.text.primary, marginBottom: ms(SPACING.md) },
+  fieldGroup: { marginBottom: ms(SPACING.md) },
+  emptyText: { fontSize: ms(FONT_SIZES.md), color: COLORS.text.tertiary, textAlign: 'center', paddingHorizontal: ms(SPACING.lg) },
+  fieldLabel: { fontSize: ms(FONT_SIZES.sm), fontWeight: '700', color: COLORS.text.primary, marginBottom: ms(8) },
   input: {
-    borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 12,
-    backgroundColor: '#FFFFFF', paddingHorizontal: 12,
-    paddingVertical: 10, fontSize: 14, color: '#111827',
+    borderWidth: 1, borderColor: '#D1D5DB', borderRadius: ms(BORDER_RADIUS.md),
+    backgroundColor: COLORS.white, paddingHorizontal: ms(12),
+    paddingVertical: ms(10), fontSize: ms(FONT_SIZES.sm), color: COLORS.text.primary,
   },
-  selectWrapper: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: 12, backgroundColor: '#FFFFFF' },
-  pickerButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12 },
-  pickerText: { color: '#111827', fontSize: 14, flex: 1 },
-  pickerArrow: { color: '#7C3AED', fontSize: 12, marginLeft: 8 },
+  selectWrapper: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: ms(BORDER_RADIUS.md), backgroundColor: COLORS.white },
+  pickerButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: ms(12) },
+  pickerText: { color: COLORS.text.primary, fontSize: ms(FONT_SIZES.sm), flex: 1 },
+  pickerArrow: { color: COLORS.primary, fontSize: ms(12), marginLeft: ms(8) },
   dropdownList: { borderTopWidth: 1, borderColor: '#E5E7EB' },
-  dropdownItem: { padding: 12, borderBottomWidth: 1, borderColor: '#F1F5F9' },
+  dropdownItem: { padding: ms(12), borderBottomWidth: 1, borderColor: '#F1F5F9' },
   dropdownItemSelected: { backgroundColor: '#F3EEFF' },
-  dropdownItemText: { color: '#111827', fontSize: 14 },
-  dropdownItemTextSelected: { color: '#7C3AED', fontWeight: '700' },
-  fieldHint: { marginTop: 6, fontSize: 12, color: '#6B7280' },
-  questionsList: { flexDirection: 'column', gap: 10 },
+  dropdownItemText: { color: COLORS.text.primary, fontSize: ms(FONT_SIZES.sm) },
+  dropdownItemTextSelected: { color: COLORS.primary, fontWeight: '700' },
+  fieldHint: { marginTop: ms(6), fontSize: ms(FONT_SIZES.xs), color: COLORS.text.secondary },
+  questionsList: { flexDirection: 'column', gap: ms(10) },
   questionCard: {
-    borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 14,
-    padding: 12, width: '100%', backgroundColor: '#FBFDFF',
+    borderWidth: 1, borderColor: '#E5E7EB', borderRadius: ms(BORDER_RADIUS.md),
+    padding: ms(12), width: '100%', backgroundColor: '#FBFDFF',
   },
-  questionTitle: { fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 10 },
-  alternativasList: { flexDirection: 'row', gap: 6, justifyContent: 'space-between' },
+  questionTitle: { fontSize: ms(FONT_SIZES.sm), fontWeight: '700', color: COLORS.text.primary, marginBottom: ms(10) },
+  alternativasList: { flexDirection: 'row', gap: ms(6), justifyContent: 'space-between' },
   alternativaButton: {
-    flex: 1, minHeight: 44, borderRadius: 10, borderWidth: 1,
-    borderColor: '#CBD5E1', backgroundColor: '#FFFFFF',
-    alignItems: 'center', justifyContent: 'center', paddingVertical: 10,
+    flex: 1, minHeight: ms(44), borderRadius: ms(BORDER_RADIUS.md), borderWidth: 1,
+    borderColor: '#CBD5E1', backgroundColor: COLORS.white,
+    alignItems: 'center', justifyContent: 'center', paddingVertical: ms(10),
   },
-  alternativaText: { fontSize: 14, fontWeight: '800', color: '#475569' },
-  alternativaTextSelected: { color: '#FFFFFF' },
-  actionsRow: { flexDirection: 'row', gap: 10, marginTop: 4, marginBottom: 10 },
+  alternativaText: { fontSize: ms(FONT_SIZES.sm), fontWeight: '800', color: '#475569' },
+  alternativaTextSelected: { color: COLORS.white },
+  actionsRow: { flexDirection: 'row', gap: ms(10), marginTop: ms(4), marginBottom: ms(10) },
   secondaryButton: {
-    flex: 1, borderRadius: 14, borderWidth: 1, borderColor: '#D1D5DB',
-    backgroundColor: '#FFFFFF', paddingVertical: 13,
+    flex: 1, borderRadius: ms(BORDER_RADIUS.xl), borderWidth: 1, borderColor: '#D1D5DB',
+    backgroundColor: COLORS.white, paddingVertical: ms(13),
     alignItems: 'center', justifyContent: 'center',
   },
-  secondaryButtonText: { color: '#374151', fontWeight: '700', fontSize: 14 },
-  primaryButton: { flex: 1, borderRadius: 14, paddingVertical: 13, alignItems: 'center', justifyContent: 'center' },
-  primaryButtonText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
+  secondaryButtonText: { color: '#374151', fontWeight: '700', fontSize: ms(FONT_SIZES.sm) },
+  primaryButton: { flex: 1, borderRadius: ms(BORDER_RADIUS.xl), paddingVertical: ms(13), alignItems: 'center', justifyContent: 'center' },
+  primaryButtonText: { color: COLORS.white, fontWeight: '800', fontSize: ms(FONT_SIZES.sm) },
 });

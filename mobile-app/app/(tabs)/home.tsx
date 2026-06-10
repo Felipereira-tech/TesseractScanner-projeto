@@ -1,5 +1,7 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import Header from '@/components/header';
+import useResponsive from '@/hooks/useResponsive';
+import { COLORS } from '@/constants/app';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ScanLine, FileText, BarChart3, ListChecks } from 'lucide-react-native';
 import React from 'react';
@@ -260,6 +262,7 @@ function ActivityItem({ icon, title, desc }: any) {
 export default function HomeScreen() {
   const router = useRouter();
   const { gabaritos } = useGabaritos();
+  const { moderateScale: ms } = useResponsive();
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -271,8 +274,8 @@ export default function HomeScreen() {
           title="ScanGab"
           subtitle="Correção de Gabaritos"
           brand={
-            <View style={styles.brand}>
-              <ScanLine color="#fff" size={18} />
+            <View style={[styles.brand, { width: ms(32), height: ms(32), borderRadius: ms(10) }]}>
+              <ScanLine color="#fff" size={ms(18)} />
             </View>
           }
         />
@@ -281,19 +284,19 @@ export default function HomeScreen() {
 
           <TouchableOpacity onPress={() => router.push('/scanner')}>
               <LinearGradient colors={[ '#7c3aed', '#4f46e5' ]}
-                style={styles.primaryCard}>
+                style={[styles.primaryCard, { padding: ms(16), borderRadius: ms(16) }] }>
                   <View>
                     <Text style={styles.primaryTitle}>Escanear Cartão</Text>
                     <Text style={styles.primarySubtitle}>Capture e corrija Respostas</Text>
                   </View>
 
-                  <View style={styles.iconCircle}>
-                    <ScanLine color='#ffffff' size={28} />
+                  <View style={[styles.iconCircle, { width: ms(48), height: ms(48), borderRadius: ms(24) }]}>
+                    <ScanLine color='#ffffff' size={ms(28)} />
                   </View>
                 </LinearGradient>
           </TouchableOpacity>
 
-          <View style={{ height: 1, backgroundColor: 'transparent', marginVertical: 3 }} />
+          <View style={{ height: 1, backgroundColor: 'transparent', marginVertical: ms(3) }} />
 
           <TouchableOpacity onPress={() => router.push('/criar-gabarito')}>
             <View style={styles.card}>

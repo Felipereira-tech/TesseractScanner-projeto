@@ -43,10 +43,22 @@ export default function GabaritosScreen() {
         {
           text: 'Editar',
           onPress: () => {
-            const respostasParam = item.respostas ? encodeURIComponent(item.respostas.join(',')) : '';
-            router.push(
-              `/criar-gabarito?id=${item.id}&nome_prova=${encodeURIComponent(item.nome_prova)}&descricao=${encodeURIComponent(item.descricao ?? '')}&quantidade_questoes=${item.quantidade_questoes}&respostas=${respostasParam}`
-            );
+            // respostas já é um array, então faz join direto
+            const respostasParam = item.respostas && item.respostas.length > 0 
+              ? encodeURIComponent(item.respostas.join(',')) 
+              : '';
+
+            const params = new URLSearchParams({
+              id: String(item.id),
+              nome_prova: item.nome_prova,
+              descricao: item.descricao ?? '',
+              quantidade_questoes: String(item.quantidade_questoes),
+              ...(respostasParam && { respostas: respostasParam }),
+            });
+
+            console.log('[Editar] Navegando para edição do gabarito:', item.id);
+
+            router.push(`/criar-gabarito?${params.toString()}`);
           },
         },
         {
