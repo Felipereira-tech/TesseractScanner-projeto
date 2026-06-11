@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Alert, SafeAreaView, StyleSheet, View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, SafeAreaView, StyleSheet, View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import Header from '@/components/header';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { GabaritoCard } from '@/components/ui/gabaritoCard';
@@ -12,6 +12,16 @@ export default function GabaritosScreen() {
   const navigation = useNavigation();
   const router = useRouter();
   const { gabaritos, loading, erro, recarregar, deleteGabarito } = useGabaritos();// Acessa o contexto dos gabaritos para obter os dados, o status de carregamento, possíveis erros e a função para recarregar os gabaritos
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await recarregar();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleDelete = async (provaId: number) => {
     Alert.alert(
@@ -95,7 +105,17 @@ export default function GabaritosScreen() {
         />
       </View>
 
-      <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.listContent} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh}
+            tintColor="#7C3AED"
+          />
+        }
+      >
         {loading && <ActivityIndicator size="large" color="#7C3AED" />}
 
         {erro && <Text style={{ color: 'red', textAlign: 'center' }}>{erro}</Text>}
