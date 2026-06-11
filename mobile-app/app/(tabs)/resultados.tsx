@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import { ProvasAPI } from '@/services/provas';
 import { NotasAPI } from '@/services/notas';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { DropdownPicker } from '@/components/ui/dropdownPicker';
 
 export default function ResultadosScreen() {
   const router = useRouter();
@@ -19,7 +20,6 @@ export default function ResultadosScreen() {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
   const styles = createStyles(ms);
 
   useEffect(() => {
@@ -89,46 +89,14 @@ export default function ResultadosScreen() {
       <View style={styles.card}>
         <Text style={styles.label}>Prova / Gabarito</Text>
         <View style={styles.pickerWrapper}>
-          <TouchableOpacity
-            style={styles.pickerButton}
-            onPress={() => setPickerOpen(!pickerOpen)}
-          >
-            <Text style={styles.pickerText}>
-              {provas.find(p => p.id === selectedProva)?.nome_prova || 'Selecione uma prova'}
-            </Text>
-            <Text style={styles.pickerArrow}>▼</Text>
-          </TouchableOpacity>
-
-          {pickerOpen && (
-            <Pressable style={styles.pickerOverlay} onPress={() => setPickerOpen(false)}>
-              <View style={[styles.dropdownList, { position: 'absolute', top: ms(48), left: 0, right: 0, zIndex: 999 }]}>
-              {provas.map((p) => (
-                <TouchableOpacity
-                  key={p.id}
-                  style={[
-                    styles.dropdownItem,
-                    selectedProva === p.id && styles.dropdownItemSelected
-                  ]}
-                  onPress={() => {
-                    console.log('Selecionou prova:', p.id, p.nome_prova);
-                    setSelectedProva(p.id);
-                    setPickerOpen(false);
-                  }}
-                >
-                  <Text style={[
-                    styles.dropdownItemText,
-                    selectedProva === p.id && styles.dropdownItemTextSelected
-                  ]}>
-                    {p.nome_prova}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-              </View>
-            </Pressable>
-          )}
-        </View>
+          <DropdownPicker
+            options={provas.map((p) => ({ value: p.id, label: p.nome_prova }))}
+            selectedValue={selectedProva}
+            onSelect={(value) => setSelectedProva(Number(value))}
+            placeholder="Selecione uma prova"
+          />
+          </View>
       </View>
-
       <View style={styles.listContainer}>
         {loading ? <ActivityIndicator color="#7C3AED" /> : (
           <FlatList

@@ -9,6 +9,7 @@ import useResponsive from '@/hooks/useResponsive';
 import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZES, SHADOWS, VALIDATION } from '@/constants/app';
 import { useGabaritos } from '@/context/GabaritosContext';
 import { ProvasAPI } from '@/services/provas';
+import { DropdownPicker } from '@/components/ui/dropdownPicker';
 
 type Alternativa = 'A' | 'B' | 'C' | 'D' | 'E';
 
@@ -41,7 +42,6 @@ export default function CriarGabaritoScreen() {
   const [numeroQuestoes, setNumeroQuestoes] = useState(DEFAULT_QUESTOES);
   const [respostas, setRespostas] = useState<Array<Alternativa | null>>(createEmptyAnswers(DEFAULT_QUESTOES));
   const [provaId, setProvaId] = useState<number | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
   const salvarClickedRef = useRef(false);
   const isEditing = Boolean(params?.id);
 
@@ -297,43 +297,15 @@ export default function CriarGabaritoScreen() {
             />
           </View>
 
-          <View style={[styles.fieldGroup, { zIndex: 999 }]}>
+<View style={[styles.fieldGroup, { zIndex: 999 }]}> 
             <Text style={styles.fieldLabel}>Número de questões</Text>
-            <View style={[styles.selectWrapper, { zIndex: 999 }]}>
-              <TouchableOpacity
-                style={styles.pickerButton}
-                onPress={() => setPickerOpen(!pickerOpen)}
-              >
-                <Text style={styles.pickerText}>{numeroQuestoes} questões</Text>
-                <Text style={styles.pickerArrow}>▼</Text>
-              </TouchableOpacity>
-
-              {pickerOpen && (
-                <Pressable style={styles.pickerOverlay} onPress={() => setPickerOpen(false)}>
-                  <View style={[styles.dropdownList, { position: 'absolute', top: ms(48), left: 0, right: 0, zIndex: 999 }]}> 
-                    {QUESTOES_OPTIONS.map((q) => (
-                      <TouchableOpacity
-                        key={q}
-                        style={[
-                          styles.dropdownItem,
-                          numeroQuestoes === q && styles.dropdownItemSelected,
-                        ]}
-                        onPress={() => {
-                          setNumeroQuestoes(q);
-                          setPickerOpen(false);
-                        }}
-                      >
-                        <Text style={[
-                          styles.dropdownItemText,
-                          numeroQuestoes === q && styles.dropdownItemTextSelected,
-                        ]}>
-                          {q} questões
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </Pressable>
-              )}
+            <View style={[styles.selectWrapper, { zIndex: 999 }]}> 
+              <DropdownPicker
+                options={QUESTOES_OPTIONS.map((q) => ({ value: q, label: `${q} questões` }))}
+                selectedValue={numeroQuestoes}
+                onSelect={(value) => setNumeroQuestoes(Number(value))}
+                placeholder="Selecione o número de questões"
+              />
             </View>
             <Text style={styles.fieldHint}>
               Selecione entre {MIN_QUESTOES} e {MAX_QUESTOES} questões.
