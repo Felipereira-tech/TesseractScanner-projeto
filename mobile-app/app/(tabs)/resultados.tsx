@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, FlatList, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, FlatList, Modal, TextInput, Alert, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '@/components/header';
 import useResponsive from '@/hooks/useResponsive';
@@ -100,7 +100,8 @@ export default function ResultadosScreen() {
           </TouchableOpacity>
 
           {pickerOpen && (
-            <View style={[styles.dropdownList, { position: 'absolute', top: ms(48), left: 0, right: 0, zIndex: 999 }]}>
+            <Pressable style={styles.pickerOverlay} onPress={() => setPickerOpen(false)}>
+              <View style={[styles.dropdownList, { position: 'absolute', top: ms(48), left: 0, right: 0, zIndex: 999 }]}>
               {provas.map((p) => (
                 <TouchableOpacity
                   key={p.id}
@@ -122,7 +123,8 @@ export default function ResultadosScreen() {
                   </Text>
                 </TouchableOpacity>
               ))}
-            </View>
+              </View>
+            </Pressable>
           )}
         </View>
       </View>
@@ -178,11 +180,12 @@ const createStyles = (ms: (n: number) => number) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   card: { margin: ms(16), borderRadius: ms(14), backgroundColor: COLORS.white, padding: ms(12), elevation: 3 },
   label: { fontWeight: '700', color: COLORS.text.primary, marginBottom: ms(8) },
-  pickerWrapper: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: ms(10), backgroundColor: COLORS.white, position: 'relative', overflow: 'hidden', zIndex: 10 },
+  pickerWrapper: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: ms(10), backgroundColor: COLORS.white, position: 'relative', zIndex: 10 },
   pickerButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: ms(12) },
   pickerText: { color: COLORS.text.primary, fontSize: ms(FONT_SIZES.md), flex: 1 },
   pickerArrow: { color: COLORS.primary, fontSize: ms(12), marginLeft: ms(8) },
   dropdownList: { position: 'absolute', top: ms(48), left: 0, right: 0, borderTopWidth: 1, borderColor: '#E5E7EB', backgroundColor: COLORS.white, maxHeight: ms(200), zIndex: 999 },
+  pickerOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 },
   dropdownItem: { padding: ms(12), borderBottomWidth: 1, borderColor: '#F1F5F9' },
   dropdownItemSelected: { backgroundColor: '#F3EEFF' },
   dropdownItemText: { color: COLORS.text.primary, fontSize: ms(FONT_SIZES.md) },

@@ -29,6 +29,18 @@ class GabaritoService:
         return GabaritoModel.salvar({"id_prova": prova_id, "respostas": respostas})
 
     @staticmethod
+    def atualizar_gabarito(prova_id, respostas_raw):
+        prova = GabaritoService._buscar_prova_ou_erro(prova_id)
+        respostas = GabaritoService._normalizar_respostas(respostas_raw)
+
+        if len(respostas) != prova["quantidade_questoes"]:
+            raise ValueError(
+                f"O gabarito precisa ter {prova['quantidade_questoes']} respostas."
+            )
+
+        return GabaritoModel.salvar({"id_prova": prova_id, "respostas": respostas})
+
+    @staticmethod
     def corrigir_gabarito(prova_id, nome_aluno, id_turma, imagem_bytes):
         """
         Processa a imagem do cartão-resposta de um aluno, realiza a correção

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -35,94 +35,100 @@ export default function CriarGabaritoScreen() {
   const { addGabarito, updateGabarito } = useGabaritos();
 
   const [salvando, setSalvando] = useState(false);
+  const [carregandoGabarito, setCarregandoGabarito] = useState(false);
   const [nomeProva, setNomeProva] = useState('');
   const [descricaoProva, setDescricaoProva] = useState('');
   const [numeroQuestoes, setNumeroQuestoes] = useState(DEFAULT_QUESTOES);
   const [respostas, setRespostas] = useState<Array<Alternativa | null>>(createEmptyAnswers(DEFAULT_QUESTOES));
   const [provaId, setProvaId] = useState<number | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const salvarClickedRef = useRef(false);
   const isEditing = Boolean(params?.id);
 
   const accentColor = '#7C3AED';
 
   useEffect(() => {
-    if (params?.id) {
-      const provaId = Number(params.id);
-      setProvaId(provaId);
+    if (!params?.id) {
+      return;
+    }
 
-      // Decodificar parâmetros com fallback para valores brutos
-      const nome = params.nome_prova ? decodeURIComponent(String(params.nome_prova)) : '';
-      const descricao = params.descricao ? decodeURIComponent(String(params.descricao)) : '';
-      const qtd = Number(params.quantidade_questoes ?? DEFAULT_QUESTOES);
+    const provaId = Number(params.id);
+    setProvaId(provaId);
 
-      setNomeProva(nome);
-      setDescricaoProva(descricao);
-      setNumeroQuestoes(qtd);
+    const nome = params.nome_prova ? decodeURIComponent(String(params.nome_prova)) : '';
+    const descricao = params.descricao ? decodeURIComponent(String(params.descricao)) : '';
+    const qtd = Number(params.quantidade_questoes ?? DEFAULT_QUESTOES);
 
-      console.log(`[Edição] Carregando gabarito ID=${provaId}, qtd=${qtd}`);
+    setNomeProva(nome);
+    setDescricaoProva(descricao);
+    setNumeroQuestoes(qtd);
 
-      // Tentar carregar respostas dos parâmetros primeiro
-      if (params.respostas && String(params.respostas).length > 0) {
-        try {
-          const raw = typeof params.respostas === 'string' ? decodeURIComponent(params.respostas) : String(params.respostas);
-          const respostaLista = raw
-            .split(',')
-            .map((item) => item.trim().toUpperCase())
-            .filter((item) => ALTERNATIVAS.includes(item as Alternativa)) as Alternativa[];
+    console.log(`[Edição] Carregando gabarito ID=${provaId}, qtd=${qtd}`);
 
-          if (respostaLista.length > 0) {
-            console.log(`[Edição] Carregadas ${respostaLista.length} respostas dos parâmetros`);
-            if (respostaLista.length < qtd) {
-              setRespostas([...respostaLista, ...createEmptyAnswers(qtd - respostaLista.length)]);
-            } else {
-              setRespostas(respostaLista.slice(0, qtd));
-            }
-            return; // Sucesso, não precisa buscar do backend
-          }
-        } catch (err) {
-          console.warn('[Edição] Erro ao parsear respostas dos params, tentando backend:', err);
-        }
-      }
+    const loadGabarito = async () => {
+      setCarregandoGabarito(true);
+      try {
+        if (params.respostas && String(params.respostas).length > 0) {
+          try {
+            const raw = typeof params.respostas === 'string' ? decodeURIComponent(params.respostas) : String(params.respostas);
+            const respostaLista = raw
+              .split(',')
+              .map((item) => item.trim().toUpperCase())
+              .filter((item) => ALTERNATIVAS.includes(item as Alternativa)) as Alternativa[];
 
-      // Se não conseguiu pelos parâmetros, busca do backend
-      ProvasAPI.buscarGabarito(provaId)
-        .then((g) => {
-          if (g) {
-            console.log('[Edição] Gabarito encontrado no backend:', g);
-            
-            if (g.respostas) {
-              const mapped = (g.respostas as Array<any>).map((r) => {
-                if (typeof r === 'number') return ALTERNATIVAS[r] ?? null;
-                if (typeof r === 'string') {
-                  const up = r.trim().toUpperCase();
-                  if (ALTERNATIVAS.includes(up as Alternativa)) return up as Alternativa;
-                  if (!isNaN(Number(r))) return ALTERNATIVAS[Number(r)] ?? null;
-                }
-                return null;
-              });
-
-              console.log(`[Edição] Mapeadas ${mapped.length} respostas do backend`);
-
-              if (mapped.length === qtd) {
-                setRespostas(mapped as Array<Alternativa | null>);
-              } else if (mapped.length > qtd) {
-                setRespostas((mapped as Array<Alternativa | null>).slice(0, qtd));
+            if (respostaLista.length > 0) {
+              console.log(`[Edição] Carregadas ${respostaLista.length} respostas dos parâmetros`);
+              if (respostaLista.length < qtd) {
+                setRespostas([...respostaLista, ...createEmptyAnswers(qtd - respostaLista.length)]);
               } else {
-                setRespostas([...(mapped as Array<Alternativa | null>), ...createEmptyAnswers(qtd - mapped.length)]);
+                setRespostas(respostaLista.slice(0, qtd));
               }
+              return;
+            }
+          } catch (err) {
+            console.warn('[Edição] Erro ao parsear respostas dos params, tentando backend:', err);
+          }
+        }
+
+        const g = await ProvasAPI.buscarGabarito(provaId);
+        if (g) {
+          console.log('[Edição] Gabarito encontrado no backend:', g);
+          if (g.respostas) {
+            const mapped = (g.respostas as Array<any>).map((r) => {
+              if (typeof r === 'number') return ALTERNATIVAS[r] ?? null;
+              if (typeof r === 'string') {
+                const up = r.trim().toUpperCase();
+                if (ALTERNATIVAS.includes(up as Alternativa)) return up as Alternativa;
+                if (!isNaN(Number(r))) return ALTERNATIVAS[Number(r)] ?? null;
+              }
+              return null;
+            });
+
+            console.log(`[Edição] Mapeadas ${mapped.length} respostas do backend`);
+
+            if (mapped.length === qtd) {
+              setRespostas(mapped as Array<Alternativa | null>);
+            } else if (mapped.length > qtd) {
+              setRespostas((mapped as Array<Alternativa | null>).slice(0, qtd));
             } else {
-              console.warn('[Edição] Gabarito não tem respostas, inicializando vazias');
-              setRespostas(createEmptyAnswers(qtd));
+              setRespostas([...(mapped as Array<Alternativa | null>), ...createEmptyAnswers(qtd - mapped.length)]);
             }
           } else {
-            console.warn('[Edição] Gabarito não encontrado no backend');
+            console.warn('[Edição] Gabarito não tem respostas, inicializando vazias');
+            setRespostas(createEmptyAnswers(qtd));
           }
-        })
-        .catch((err) => {
-          console.warn('[Edição] Erro ao buscar gabarito do backend:', err);
-        });
-    }
-  }, [params?.id]);
+        } else {
+          console.warn('[Edição] Gabarito não encontrado no backend');
+        }
+      } catch (err) {
+        console.warn('[Edição] Erro ao buscar gabarito do backend:', err);
+      } finally {
+        setCarregandoGabarito(false);
+      }
+    };
+
+    loadGabarito();
+  }, [params]);
 
   useEffect(() => {
     if (!isEditing && numeroQuestoes > 0) {
@@ -174,9 +180,15 @@ export default function CriarGabaritoScreen() {
   };
 
   const handleSalvar = async () => {
+    if (salvarClickedRef.current) {
+      return;
+    }
+    salvarClickedRef.current = true;
+
     const nomeTratado = nomeProva.trim();
 
     if (!nomeTratado) {
+      salvarClickedRef.current = false;
       Alert.alert('Nome obrigatório', 'Informe o nome da prova antes de salvar.');
       return;
     }
@@ -241,16 +253,21 @@ export default function CriarGabaritoScreen() {
       Alert.alert('Erro ao salvar', mensagemErro);
     } finally {
       setSalvando(false);
+      salvarClickedRef.current = false;
     }
   };
 
   const styles = createStyles(ms);
+  const isFormDisabled = salvando || carregandoGabarito;
+  const screenTitle = isEditing ? 'Editar Gabarito' : 'Criar Gabarito';
+  const screenSubtitle = isEditing ? 'Atualize os dados e as respostas do gabarito' : 'Preencha os dados e marque as respostas';
+  const saveLabel = isEditing ? 'Salvar alterações' : 'Salvar';
 
   return (
     <SafeAreaView style={styles.container}>
       <Header
-        title={isEditing ? 'Editar Gabarito' : 'Criar Gabarito'}
-        subtitle="Preencha os dados e marque as respostas"
+        title={screenTitle}
+        subtitle={screenSubtitle}
         brand={<HeaderBackButton onPress={() => router.push('/gabaritos')} />}
       />
 
@@ -292,28 +309,30 @@ export default function CriarGabaritoScreen() {
               </TouchableOpacity>
 
               {pickerOpen && (
-                <View style={styles.dropdownList}>
-                  {QUESTOES_OPTIONS.map((q) => (
-                    <TouchableOpacity
-                      key={q}
-                      style={[
-                        styles.dropdownItem,
-                        numeroQuestoes === q && styles.dropdownItemSelected,
-                      ]}
-                      onPress={() => {
-                        setNumeroQuestoes(q);
-                        setPickerOpen(false);
-                      }}
-                    >
-                      <Text style={[
-                        styles.dropdownItemText,
-                        numeroQuestoes === q && styles.dropdownItemTextSelected,
-                      ]}>
-                        {q} questões
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                <Pressable style={styles.pickerOverlay} onPress={() => setPickerOpen(false)}>
+                  <View style={[styles.dropdownList, { position: 'absolute', top: ms(48), left: 0, right: 0, zIndex: 999 }]}> 
+                    {QUESTOES_OPTIONS.map((q) => (
+                      <TouchableOpacity
+                        key={q}
+                        style={[
+                          styles.dropdownItem,
+                          numeroQuestoes === q && styles.dropdownItemSelected,
+                        ]}
+                        onPress={() => {
+                          setNumeroQuestoes(q);
+                          setPickerOpen(false);
+                        }}
+                      >
+                        <Text style={[
+                          styles.dropdownItemText,
+                          numeroQuestoes === q && styles.dropdownItemTextSelected,
+                        ]}>
+                          {q} questões
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </Pressable>
               )}
             </View>
             <Text style={styles.fieldHint}>
@@ -334,13 +353,13 @@ export default function CriarGabaritoScreen() {
             <Text style={[styles.secondaryButtonText, { color: accentColor }]}>Aleatório</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: accentColor, opacity: salvando ? 0.6 : 1 }]}
+            style={[styles.primaryButton, { backgroundColor: accentColor, opacity: isFormDisabled ? 0.6 : 1 }]}
             onPress={handleSalvar}
-            disabled={salvando}
+            disabled={isFormDisabled}
           >
-            {salvando
+            {isFormDisabled
               ? <ActivityIndicator color="#fff" />
-              : <Text style={styles.primaryButtonText}>Salvar</Text>
+              : <Text style={styles.primaryButtonText}>{saveLabel}</Text>
             }
           </TouchableOpacity>
         </View>
@@ -401,11 +420,12 @@ const createStyles = (ms: (n:number)=>number) => StyleSheet.create({
     backgroundColor: COLORS.white, paddingHorizontal: ms(12),
     paddingVertical: ms(10), fontSize: ms(FONT_SIZES.sm), color: COLORS.text.primary,
   },
-  selectWrapper: { borderWidth: 1, borderColor: '#D1D5DB', borderRadius: ms(BORDER_RADIUS.md), backgroundColor: COLORS.white },
+  selectWrapper: { position: 'relative', borderWidth: 1, borderColor: '#D1D5DB', borderRadius: ms(BORDER_RADIUS.md), backgroundColor: COLORS.white },
   pickerButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: ms(12) },
   pickerText: { color: COLORS.text.primary, fontSize: ms(FONT_SIZES.sm), flex: 1 },
   pickerArrow: { color: COLORS.primary, fontSize: ms(12), marginLeft: ms(8) },
-  dropdownList: { borderTopWidth: 1, borderColor: '#E5E7EB' },
+  dropdownList: { borderTopWidth: 1, borderColor: '#E5E7EB', backgroundColor: COLORS.white, maxHeight: ms(200) },
+  pickerOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 },
   dropdownItem: { padding: ms(12), borderBottomWidth: 1, borderColor: '#F1F5F9' },
   dropdownItemSelected: { backgroundColor: '#F3EEFF' },
   dropdownItemText: { color: COLORS.text.primary, fontSize: ms(FONT_SIZES.sm) },

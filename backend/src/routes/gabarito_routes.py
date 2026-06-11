@@ -41,6 +41,11 @@ async def gabarito_buscar(prova_id: int):
     return await GabaritoController.buscar_por_prova_id(prova_id)
 
 
+@router.put("/gabaritos/{prova_id}")
+async def gabarito_atualizar(prova_id: int, payload: dict = Body(...)):
+    return await GabaritoController.atualizar_gabarito(prova_id, payload)
+
+
 @router.get("/gabaritos/{prova_id}/notas")
 async def gabarito_listar_notas(prova_id: int):
     return await GabaritoController.listar_notas(prova_id)

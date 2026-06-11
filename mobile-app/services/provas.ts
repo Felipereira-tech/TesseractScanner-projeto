@@ -53,12 +53,21 @@ export const ProvasAPI = {
   },
 
   atualizar: async (provaId: number, payload: ProvaPayload & { respostas_raw?: string }) => {
-    return api.put(`${endpoints.provas}/${provaId}`, {
+    const updateProva = api.put(`${endpoints.provas}/${provaId}`, {
       nome_prova: payload.nome,
       descricao: payload.descricao,
       quantidade_questoes: payload.quantidade_questoes,
-      respostas_raw: payload.respostas_raw,
     });
+
+    if (payload.respostas_raw) {
+      const updateGabarito = api.put(`${endpoints.gabaritos}/${provaId}`, {
+        respostas_raw: payload.respostas_raw,
+      });
+      await Promise.all([updateProva, updateGabarito]);
+      return updateProva;
+    }
+
+    return updateProva;
   },
 
   deletar: async (provaId: number) => {

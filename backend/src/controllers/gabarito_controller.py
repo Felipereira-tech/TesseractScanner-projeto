@@ -124,6 +124,18 @@ class GabaritoController:
             return JSONResponse({"status": "erro", "mensagem": "Erro interno ao buscar gabarito."}, status_code=500)
 
     @staticmethod
+    async def atualizar_gabarito(prova_id: int, payload: dict):
+        try:
+            respostas_raw = payload.get("respostas_raw")
+            resultado = GabaritoService.atualizar_gabarito(prova_id, respostas_raw)
+            return JSONResponse({"status": "sucesso", "dados": resultado.data}, status_code=200)
+        except ValueError as e:
+            return JSONResponse({"status": "erro", "mensagem": str(e)}, status_code=422)
+        except Exception as e:
+            logger.exception("Erro ao atualizar gabarito: %s", e)
+            return JSONResponse({"status": "erro", "mensagem": "Erro interno ao atualizar gabarito."}, status_code=500)
+
+    @staticmethod
     async def listar_notas(prova_id: int):
         try:
             from src.models.gabarito_model import GabaritoModel
