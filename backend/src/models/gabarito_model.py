@@ -14,7 +14,11 @@ class GabaritoModel:
 
     @staticmethod
     def salvar(dados):
-        return supabase.table("gabarito").upsert(dados).execute()
+        return supabase.table("gabarito").insert(dados).execute()
+
+    @staticmethod
+    def atualizar_por_prova_id(prova_id, dados):
+        return supabase.table("gabarito").update(dados).eq("id_prova", prova_id).execute()
 
     @staticmethod
     def buscar_por_prova_id(prova_id):
