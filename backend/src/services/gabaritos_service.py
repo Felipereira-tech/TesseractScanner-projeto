@@ -210,18 +210,26 @@ class GabaritoService:
         if coluna < 0 or coluna >= num_colunas:
             raise ValueError(f"Coluna {coluna} inválida. Esta prova tem {num_colunas} colunas.")
 
-        # Questões reais desta coluna (para saber quantas retornar)
+        # Questões reais desta coluna
         inicio = coluna * q_per_col
         fim = min(inicio + q_per_col, total_questoes)
         questoes_reais = fim - inicio
 
-        # Máximo físico impresso no cartão — SEMPRE fixo independente da prova
-        # Colunas 0, 1, 2 → 24 espaços físicos
-        # Coluna 3 (última) → 18 espaços físicos
-        MAX_FISICO_POR_COLUNA = [24, 24, 24, 18]
-        max_fisico = MAX_FISICO_POR_COLUNA[coluna]
+        # Máximo físico calculado dinamicamente:
+        # Se não é a última coluna → sempre 24 espaços físicos
+        # Se é a última coluna → total de espaços físicos impressos
+        #   calculado como: total_questoes máximo do cartão (90) dividido pelo num_colunas
+        #   mas como o cartão é sempre 24,24,24,18 → a última coluna é 90 - (num_colunas-1)*24
+        if coluna < num_colunas - 1:
+            max_fisico = q_per_col  # 24 sempre nas colunas intermediárias
+        else:
+            # Última coluna: espaços físicos = total máximo do cartão menos as colunas anteriores
+            # O cartão suporta no máximo 90 questões = 3*24 + 18
+            max_questoes_cartao = 90
+            max_fisico = max_questoes_cartao - (num_colunas - 1) * q_per_col
+            # Garante que não ultrapasse o físico real (18 para 4 colunas, 24 para 3 colunas, etc)
+            max_fisico = min(max_fisico, q_per_col)
 
-        # Scanner divide o grid pelo máximo físico real do cartão
         gabarito_dummy = [0] * max_fisico
         scanner = CartaoScanner(
             total_questoes=max_fisico,
@@ -230,7 +238,7 @@ class GabaritoService:
         )
         _, respostas_lidas, imagem_corrigida = scanner.processar(imagem_bytes)
 
-        # Retorna só as questões reais, ignorando espaços em branco do cartão
+        # Retorna só as questões reais, ignorando espaços em branco
         respostas_coluna = respostas_lidas[:questoes_reais]
 
         preview = base64.b64encode(imagem_corrigida).decode("utf-8")
