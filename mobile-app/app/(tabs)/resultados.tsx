@@ -9,7 +9,7 @@ import { useRouter } from 'expo-router';
 import { ProvasAPI } from '@/services/provas';
 import { NotasAPI } from '@/services/notas';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { DropdownPicker } from '@/components/ui/dropdownPicker';
+import { DropdownPicker } from '@/components/dropdownPicker';
 
 export default function ResultadosScreen() {
   const router = useRouter();
@@ -88,6 +88,16 @@ export default function ResultadosScreen() {
     }
   };
 
+  // Monta as opções no formato do DropdownPicker, aproveitando sublabel e badge
+  const provaOptions = provas.map((p) => ({
+    value: p.id,
+    label: p.nome_prova,
+    sublabel: p.data ? new Date(p.data).toLocaleDateString('pt-BR') : undefined,
+    badge: p.total_questoes ? `${p.total_questoes}q` : undefined,
+    badgeBg: '#EEEDFE',
+    badgeColor: '#534AB7',
+  }));
+
   return (
     <SafeAreaView style={styles.container}>
       <Header
@@ -98,10 +108,9 @@ export default function ResultadosScreen() {
 
       <View style={styles.card}>
         <Text style={styles.label}>Prova / Gabarito</Text>
-        {/* pickerWrapper sem zIndex — o DropdownPicker usa Modal agora */}
         <View style={styles.pickerWrapper}>
           <DropdownPicker
-            options={provas.map((p) => ({ value: p.id, label: p.nome_prova }))}
+            options={provaOptions}
             selectedValue={selectedProva}
             onSelect={(value) => setSelectedProva(Number(value))}
             placeholder="Selecione uma prova"
@@ -185,7 +194,6 @@ const createStyles = (ms: (n: number) => number) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   card: { margin: ms(16), borderRadius: ms(14), backgroundColor: COLORS.white, padding: ms(12), elevation: 3 },
   label: { fontWeight: '700', color: COLORS.text.primary, marginBottom: ms(8) },
-  // sem zIndex aqui — dropdown agora usa Modal
   pickerWrapper: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: ms(10), backgroundColor: COLORS.white },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: ms(12), borderBottomWidth: 1, borderColor: '#F1F5F9' },
   name: { fontWeight: '700', color: '#0F172A' },
