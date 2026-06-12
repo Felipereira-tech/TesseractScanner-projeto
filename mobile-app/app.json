@@ -20,7 +20,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.luastys.scangab"
+      "package": "com.lucastys.scangab"
     },
     "web": {
       "output": "static",
