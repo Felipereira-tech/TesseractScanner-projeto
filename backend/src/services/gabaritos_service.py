@@ -66,8 +66,8 @@ class GabaritoService:
         # Executa o processamento de imagem e retorna os acertos, os índices marcados e o buffer da imagem modificada
         acertos, respostas_lidas, imagem_corrigida = scanner.processar(imagem_bytes)
 
-        # Calcula a nota do aluno na escala de 0 a 10, arredondando para duas casas decimais
-        nota = round((acertos / total_questoes) * 10, 2)
+        # Calcula a nota do aluno na escala de 0 a 5, arredondando para 1 casa decimal
+        nota = round((acertos / total_questoes) * 5, 1)
 
         # Salva a lista detalhada de marcações que o scanner leu do cartão do aluno
         GabaritoModel.salvar_respostas_aluno(
@@ -271,7 +271,7 @@ class GabaritoService:
             1 for i in range(total_questoes)
             if respostas_completas[i] == gabarito_oficial[i]
         )
-        nota = round((acertos / total_questoes) * 10, 2)
+        nota = round((acertos / total_questoes) * 5, 1)
 
         GabaritoModel.salvar_respostas_aluno({
             "nome_aluno": nome_aluno,
