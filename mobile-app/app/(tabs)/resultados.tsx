@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, FlatList, Modal, TextInput, Alert, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, FlatList, Modal, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from '@/components/header';
 import useResponsive from '@/hooks/useResponsive';
-import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZES } from '@/constants/app';
+import { COLORS, FONT_SIZES } from '@/constants/app';
 import { HeaderBackButton } from '@react-navigation/elements';
 import { useRouter } from 'expo-router';
 import { ProvasAPI } from '@/services/provas';
@@ -59,21 +59,27 @@ export default function ResultadosScreen() {
   const handleDelete = (item: any) => {
     Alert.alert('Excluir nota', 'Deseja excluir esta nota?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Excluir', style: 'destructive', onPress: async () => {
-        try {
-          await NotasAPI.deletar(item.id);
-          loadNotas(selectedProva!);
-        } catch (err) {
-          Alert.alert('Erro', 'Não foi possível excluir a nota.');
+      {
+        text: 'Excluir', style: 'destructive', onPress: async () => {
+          try {
+            await NotasAPI.deletar(item.id);
+            loadNotas(selectedProva!);
+          } catch (err) {
+            Alert.alert('Erro', 'Não foi possível excluir a nota.');
+          }
         }
-      }}
+      }
     ]);
   };
 
   const saveEdit = async () => {
     if (!editing) return;
     try {
-      await NotasAPI.atualizar(editing.id, { nome_aluno: editing.nome_aluno, acertos: Number(editing.acertos), nota: Number(editing.nota) });
+      await NotasAPI.atualizar(editing.id, {
+        nome_aluno: editing.nome_aluno,
+        acertos: Number(editing.acertos),
+        nota: Number(editing.nota),
+      });
       setModalVisible(false);
       setEditing(null);
       loadNotas(selectedProva!);
@@ -84,10 +90,15 @@ export default function ResultadosScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Header title="Notas dos Alunos" subtitle="Visualize e edite notas" brand={<HeaderBackButton onPress={() => router.back()} />} />
+      <Header
+        title="Notas dos Alunos"
+        subtitle="Visualize e edite notas"
+        brand={<HeaderBackButton onPress={() => router.back()} />}
+      />
 
       <View style={styles.card}>
         <Text style={styles.label}>Prova / Gabarito</Text>
+        {/* pickerWrapper sem zIndex — o DropdownPicker usa Modal agora */}
         <View style={styles.pickerWrapper}>
           <DropdownPicker
             options={provas.map((p) => ({ value: p.id, label: p.nome_prova }))}
@@ -95,10 +106,13 @@ export default function ResultadosScreen() {
             onSelect={(value) => setSelectedProva(Number(value))}
             placeholder="Selecione uma prova"
           />
-          </View>
+        </View>
       </View>
+
       <View style={styles.listContainer}>
-        {loading ? <ActivityIndicator color="#7C3AED" /> : (
+        {loading ? (
+          <ActivityIndicator color="#7C3AED" />
+        ) : (
           <FlatList
             data={notas}
             keyExtractor={(i) => String(i.id)}
@@ -126,14 +140,37 @@ export default function ResultadosScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.cardTitle}>Editar Nota</Text>
-            <TextInput style={styles.input} value={editing?.nome_aluno} onChangeText={(t) => setEditing((s:any)=>({...s, nome_aluno: t}))} placeholder="Nome do aluno" />
-            <TextInput style={styles.input} value={String(editing?.acertos ?? '')} onChangeText={(t) => setEditing((s:any)=>({...s, acertos: t}))} placeholder="Acertos" keyboardType="numeric" />
-            <TextInput style={styles.input} value={String(editing?.nota ?? '')} onChangeText={(t) => setEditing((s:any)=>({...s, nota: t}))} placeholder="Nota" keyboardType="numeric" />
+            <TextInput
+              style={styles.input}
+              value={editing?.nome_aluno}
+              onChangeText={(t) => setEditing((s: any) => ({ ...s, nome_aluno: t }))}
+              placeholder="Nome do aluno"
+            />
+            <TextInput
+              style={styles.input}
+              value={String(editing?.acertos ?? '')}
+              onChangeText={(t) => setEditing((s: any) => ({ ...s, acertos: t }))}
+              placeholder="Acertos"
+              keyboardType="numeric"
+            />
+            <TextInput
+              style={styles.input}
+              value={String(editing?.nota ?? '')}
+              onChangeText={(t) => setEditing((s: any) => ({ ...s, nota: t }))}
+              placeholder="Nota"
+              keyboardType="numeric"
+            />
             <View style={{ flexDirection: 'row', gap: ms(8), marginTop: ms(12) }}>
-              <TouchableOpacity style={styles.secondaryButton} onPress={() => { setModalVisible(false); setEditing(null); }}>
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={() => { setModalVisible(false); setEditing(null); }}
+              >
                 <Text style={styles.secondaryButtonText}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.primaryButton, { backgroundColor: COLORS.primary }]} onPress={saveEdit}>
+              <TouchableOpacity
+                style={[styles.primaryButton, { backgroundColor: COLORS.primary }]}
+                onPress={saveEdit}
+              >
                 <Text style={styles.primaryButtonText}>Salvar</Text>
               </TouchableOpacity>
             </View>
@@ -148,16 +185,8 @@ const createStyles = (ms: (n: number) => number) => StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   card: { margin: ms(16), borderRadius: ms(14), backgroundColor: COLORS.white, padding: ms(12), elevation: 3 },
   label: { fontWeight: '700', color: COLORS.text.primary, marginBottom: ms(8) },
-  pickerWrapper: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: ms(10), backgroundColor: COLORS.white, position: 'relative', zIndex: 10 },
-  pickerButton: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: ms(12) },
-  pickerText: { color: COLORS.text.primary, fontSize: ms(FONT_SIZES.md), flex: 1 },
-  pickerArrow: { color: COLORS.primary, fontSize: ms(12), marginLeft: ms(8) },
-  dropdownList: { position: 'absolute', top: ms(48), left: 0, right: 0, borderTopWidth: 1, borderColor: '#E5E7EB', backgroundColor: COLORS.white, maxHeight: ms(200), zIndex: 999 },
-  pickerOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 998 },
-  dropdownItem: { padding: ms(12), borderBottomWidth: 1, borderColor: '#F1F5F9' },
-  dropdownItemSelected: { backgroundColor: '#F3EEFF' },
-  dropdownItemText: { color: COLORS.text.primary, fontSize: ms(FONT_SIZES.md) },
-  dropdownItemTextSelected: { color: COLORS.primary, fontWeight: '700' },
+  // sem zIndex aqui — dropdown agora usa Modal
+  pickerWrapper: { borderWidth: 1, borderColor: '#E5E7EB', borderRadius: ms(10), backgroundColor: COLORS.white },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: ms(12), borderBottomWidth: 1, borderColor: '#F1F5F9' },
   name: { fontWeight: '700', color: '#0F172A' },
   meta: { color: COLORS.text.secondary, marginTop: ms(4) },
