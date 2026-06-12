@@ -9,7 +9,8 @@ import useResponsive from '@/hooks/useResponsive';
 import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZES } from '@/constants/app';
 import { useGabaritos } from '@/context/GabaritosContext';
 import { ProvasAPI } from '@/services/provas';
-import { DropdownPicker } from '@/components/ui/dropdownPicker';
+import { DropdownPicker, DropdownOption } from '@/components/dropdownPicker';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
 type Alternativa = 'A' | 'B' | 'C' | 'D' | 'E';
 
@@ -18,6 +19,17 @@ const DEFAULT_QUESTOES = 50;
 const MIN_QUESTOES = 50;
 const MAX_QUESTOES = 90;
 const QUESTOES_OPTIONS = Array.from({ length: 5 }, (_, i) => 50 + i * 10);
+
+// Cada opção de quantidade com ícone, sublabel e badge
+const QUESTOES_DROPDOWN: DropdownOption[] = QUESTOES_OPTIONS.map((q) => ({
+  value: q,
+  label: `${q} questões`,
+  sublabel: q === 50 ? 'Mínimo permitido' : q === 90 ? 'Máximo permitido' : `Gabarito intermediário`,
+  icon: <IconSymbol name="doc.text" size={18} color="#7C3AED" />,
+  badge: q === 50 ? 'Padrão' : q === 90 ? 'Completo' : undefined,
+  badgeBg: q === 50 ? '#E1F5EE' : '#EEEDFE',
+  badgeColor: q === 50 ? '#0F6E56' : '#534AB7',
+}));
 
 function createEmptyAnswers(total: number): Array<Alternativa | null> {
   return Array.from({ length: total }, () => null);
@@ -255,10 +267,9 @@ export default function CriarGabaritoScreen() {
 
           <View style={styles.fieldGroup}>
             <Text style={styles.fieldLabel}>Número de questões</Text>
-            {/* sem zIndex — DropdownPicker usa Modal agora */}
             <View style={styles.selectWrapper}>
               <DropdownPicker
-                options={QUESTOES_OPTIONS.map((q) => ({ value: q, label: `${q} questões` }))}
+                options={QUESTOES_DROPDOWN}
                 selectedValue={numeroQuestoes}
                 onSelect={(value) => setNumeroQuestoes(Number(value))}
                 placeholder="Selecione o número de questões"
@@ -364,7 +375,6 @@ const createStyles = (ms: (n: number) => number) => StyleSheet.create({
     fontSize: ms(FONT_SIZES.sm),
     color: COLORS.text.primary,
   },
-  // sem zIndex — dropdown usa Modal
   selectWrapper: {
     borderWidth: 1,
     borderColor: '#D1D5DB',
