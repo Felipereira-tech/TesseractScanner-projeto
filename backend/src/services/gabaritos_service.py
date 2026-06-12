@@ -4,8 +4,6 @@ import json
 from src.models.gabarito_model import GabaritoModel
 from src.services.scanner import CartaoScanner
 
-PONTUACAO_MAXIMA = 5
-
 
 class GabaritoService:
     @staticmethod
@@ -27,18 +25,6 @@ class GabaritoService:
 
         # Persiste o gabarito oficial associado à prova no banco de dados
         return GabaritoModel.salvar({"id_prova": prova_id, "respostas": respostas})
-
-    @staticmethod
-    def atualizar_gabarito(prova_id, respostas_raw):
-        prova = GabaritoService._buscar_prova_ou_erro(prova_id)
-        respostas = GabaritoService._normalizar_respostas(respostas_raw)
-
-        if len(respostas) != prova["quantidade_questoes"]:
-            raise ValueError(
-                f"O gabarito precisa ter {prova['quantidade_questoes']} respostas."
-            )
-
-        return GabaritoModel.atualizar_por_prova_id(prova_id, {"respostas": respostas})
 
     @staticmethod
     def corrigir_gabarito(prova_id, nome_aluno, id_turma, imagem_bytes):
@@ -80,8 +66,8 @@ class GabaritoService:
         # Executa o processamento de imagem e retorna os acertos, os índices marcados e o buffer da imagem modificada
         acertos, respostas_lidas, imagem_corrigida = scanner.processar(imagem_bytes)
 
-        # Calcula a nota do aluno na escala de 0 a 5, arredondando para duas casas decimais
-        nota = round((acertos / total_questoes) * PONTUACAO_MAXIMA, 2)
+        # Calcula a nota do aluno na escala de 0 a 10, arredondando para duas casas decimais
+        nota = round((acertos / total_questoes) * 10, 2)
 
         # Salva a lista detalhada de marcações que o scanner leu do cartão do aluno
         GabaritoModel.salvar_respostas_aluno(
@@ -224,25 +210,41 @@ class GabaritoService:
         if coluna < 0 or coluna >= num_colunas:
             raise ValueError(f"Coluna {coluna} inválida. Esta prova tem {num_colunas} colunas.")
 
-        # Quantas questões nesta coluna
+        # Questões reais desta coluna
         inicio = coluna * q_per_col
         fim = min(inicio + q_per_col, total_questoes)
-        questoes_nesta_coluna = fim - inicio
+        questoes_reais = fim - inicio
 
-        # Scanner processa só as questões desta coluna
-        # Gabarito fictício (não é usado para comparação aqui)
-        gabarito_dummy = [0] * questoes_nesta_coluna
+        # Máximo físico calculado dinamicamente:
+        # Se não é a última coluna → sempre 24 espaços físicos
+        # Se é a última coluna → total de espaços físicos impressos
+        #   calculado como: total_questoes máximo do cartão (90) dividido pelo num_colunas
+        #   mas como o cartão é sempre 24,24,24,18 → a última coluna é 90 - (num_colunas-1)*24
+        if coluna < num_colunas - 1:
+            max_fisico = q_per_col  # 24 sempre nas colunas intermediárias
+        else:
+            # Última coluna: espaços físicos = total máximo do cartão menos as colunas anteriores
+            # O cartão suporta no máximo 90 questões = 3*24 + 18
+            max_questoes_cartao = 90
+            max_fisico = max_questoes_cartao - (num_colunas - 1) * q_per_col
+            # Garante que não ultrapasse o físico real (18 para 4 colunas, 24 para 3 colunas, etc)
+            max_fisico = min(max_fisico, q_per_col)
+
+        gabarito_dummy = [0] * max_fisico
         scanner = CartaoScanner(
-            total_questoes=questoes_nesta_coluna,
+            total_questoes=max_fisico,
             gabarito=gabarito_dummy,
             alternativas=5,
         )
         _, respostas_lidas, imagem_corrigida = scanner.processar(imagem_bytes)
 
+        # Retorna só as questões reais, ignorando espaços em branco
+        respostas_coluna = respostas_lidas[:questoes_reais]
+
         preview = base64.b64encode(imagem_corrigida).decode("utf-8")
 
         return {
-            "respostas_coluna": respostas_lidas,
+            "respostas_coluna": respostas_coluna,
             "preview_coluna": f"data:image/jpeg;base64,{preview}",
         }
         
@@ -269,7 +271,7 @@ class GabaritoService:
             1 for i in range(total_questoes)
             if respostas_completas[i] == gabarito_oficial[i]
         )
-        nota = round((acertos / total_questoes) * PONTUACAO_MAXIMA, 2)
+        nota = round((acertos / total_questoes) * 10, 2)
 
         GabaritoModel.salvar_respostas_aluno({
             "nome_aluno": nome_aluno,
