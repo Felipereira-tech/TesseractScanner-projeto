@@ -9,8 +9,10 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import Header from '@/components/header';
+import { DropdownPicker } from '@/components/dropdownPicker';
 import api, { endpoints } from '@/app/api/axios';
 import { TurmasAPI, type Turma } from '@/services/provas';
+import { useGabaritos } from '@/context/GabaritosContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -28,13 +30,18 @@ export default function ScannerScreen() {
     quantidade_questoes: string;
   }>();
 
-  const totalQuestoes = parseInt(quantidade_questoes ?? '24');
-  const numColunas = Math.ceil(totalQuestoes / 24);
+  const { gabaritos, loading: loadingGabaritos } = useGabaritos();
 
   const [permission, requestPermission] = useCameraPermissions();
   const [nomeAluno, setNomeAluno] = useState('');
+  const [provaSelecionada, setProvaSelecionada] = useState<number | null>(null);
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [turmaSelecionada, setTurmaSelecionada] = useState<number | null>(null);
+
+  // Gabarito atualmente selecionado (a partir do select ou do parâmetro de navegação)
+  const provaAtual = gabaritos.find((g) => g.id === provaSelecionada) ?? null;
+  const totalQuestoes = provaAtual?.quantidade_questoes ?? parseInt(quantidade_questoes ?? '24');
+  const numColunas = Math.ceil(totalQuestoes / 24);
   const [loading, setLoading] = useState(false);
   const [colunaAtual, setColunaAtual] = useState(0);
   const [respostasAcumuladas, setRespostasAcumuladas] = useState<number[]>([]);
@@ -64,6 +71,16 @@ export default function ScannerScreen() {
   );
 };
 
+  // Pré-seleciona o gabarito: usa o parâmetro de navegação, ou o primeiro da lista
+  useEffect(() => {
+    if (provaSelecionada !== null) return;
+    if (prova_id) {
+      setProvaSelecionada(parseInt(prova_id));
+    } else if (gabaritos.length > 0) {
+      setProvaSelecionada(gabaritos[0].id);
+    }
+  }, [prova_id, gabaritos, provaSelecionada]);
+
   useEffect(() => {
     TurmasAPI.listar().then((dados) => {
       setTurmas(dados);
@@ -87,11 +104,22 @@ export default function ScannerScreen() {
     setNomeAluno('');
   };
 
+  // Troca o gabarito selecionado e zera qualquer progresso de scan em andamento
+  const handleSelecionarProva = (value: string | number) => {
+    setProvaSelecionada(Number(value));
+    setColunaAtual(0);
+    setRespostasAcumuladas([]);
+  };
+
   const isUltimaColuna = colunaAtual === numColunas - 1;
 
   const handleProcessar = async () => {
     if (!nomeAluno.trim()) {
       Alert.alert('Nome obrigatório', 'Informe o nome do aluno antes de processar.');
+      return;
+    }
+    if (!provaSelecionada) {
+      Alert.alert('Gabarito obrigatório', 'Selecione um gabarito antes de processar.');
       return;
     }
     if (turmas.length > 0 && !turmaSelecionada) {
@@ -163,7 +191,7 @@ export default function ScannerScreen() {
 
       // 4. Monta o FormData com a foto cropada
       const form = new FormData();
-      form.append('prova_id', String(prova_id));
+      form.append('prova_id', String(provaSelecionada));
       form.append('coluna', String(colunaAtual));
       form.append('file', {
         uri: fotoCropada.uri,
@@ -183,7 +211,7 @@ export default function ScannerScreen() {
       if (isUltimaColuna) {
         // 6a. Última coluna — finaliza e salva nota
         const resFinalizacao = await api.post(endpoints.gabaritosFinalizar, {
-          prova_id: parseInt(prova_id),
+          prova_id: provaSelecionada,
           nome_aluno: nomeAluno.trim(),
           id_turma: turmaSelecionada,
           respostas: novasRespostas,
@@ -208,7 +236,9 @@ export default function ScannerScreen() {
       }
 
     } catch (err: any) {
-      console.error(err);
+      // console.log (em vez de console.error/warn) evita qualquer overlay do Expo/LogBox
+      // sobre o Alert — o erro já é tratado e exibido ao usuário abaixo.
+      console.log('Falha ao processar o cartão:', err?.response?.data?.mensagem ?? err?.message ?? err);
       Alert.alert('Erro', err?.response?.data?.mensagem ?? 'Erro ao processar o cartão.');
     } finally {
       setLoading(false);
@@ -218,7 +248,7 @@ export default function ScannerScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Header
-        title={nome_prova ?? 'Escanear Cartão'}
+        title={provaAtual?.nome_prova ?? nome_prova ?? 'Escanear Cartão'}
         subtitle="Posicione o cartão e informe o aluno"
         brand={<HeaderBackButton onPress={() => {
           resetarCorrecao();
@@ -263,6 +293,30 @@ export default function ScannerScreen() {
               placeholderTextColor="#9CA3AF"
               style={styles.input}
             />
+
+            <Text style={[styles.sectionLabel, { marginTop: 16 }]}>Gabarito</Text>
+            {loadingGabaritos && gabaritos.length === 0 ? (
+              <View style={styles.hiddenNotice}>
+                <Text style={styles.hiddenNoticeText}>Carregando gabaritos...</Text>
+              </View>
+            ) : gabaritos.length === 0 ? (
+              <View style={styles.hiddenNotice}>
+                <Text style={styles.hiddenNoticeText}>Nenhum gabarito cadastrado. Cadastre um gabarito antes de escanear.</Text>
+              </View>
+            ) : (
+              <View style={styles.pickerWrapper}>
+                <DropdownPicker
+                  options={gabaritos.map((g) => ({
+                    value: g.id,
+                    label: g.nome_prova,
+                    sublabel: `${g.quantidade_questoes} questões`,
+                  }))}
+                  selectedValue={provaSelecionada}
+                  onSelect={handleSelecionarProva}
+                  placeholder="Selecione o gabarito"
+                />
+              </View>
+            )}
 
             {/* A seleção de turma foi removida da interface. A turma padrão será usada automaticamente quando disponível. */}
             {turmas.length === 0 && (
