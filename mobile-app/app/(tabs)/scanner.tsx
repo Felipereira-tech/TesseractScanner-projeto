@@ -18,8 +18,8 @@ const { width: screenWidth } = Dimensions.get('window');
 // Proporção do cameraFrame em relação à largura da tela
 // cameraFrame tem width: '55%' e está centralizado dentro do cameraCard
 // O cameraCard tem padding: 5 de cada lado
-const CAMERA_CARD_PADDING = 45;
-const CAMERA_FRAME_PCT = 0.60;
+const CAMERA_CARD_PADDING = 40;
+const CAMERA_FRAME_PCT = 0.40;
 
 export default function ScannerScreen() {
   const router = useRouter();
