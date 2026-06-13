@@ -243,7 +243,7 @@ class GabaritoService:
 
         # Preenche com zeros até o max_fisico caso seja a última coluna incompleta
         gabarito_coluna = gabarito_coluna + [0] * (max_fisico - len(gabarito_coluna))
-
+        
         scanner = CartaoScanner(
             total_questoes=max_fisico,
             gabarito=gabarito_coluna,
@@ -253,11 +253,12 @@ class GabaritoService:
 
         respostas_coluna = respostas_lidas[:questoes_reais]
         preview = base64.b64encode(imagem_corrigida).decode("utf-8")
-
+        print(f">>> coluna={coluna} | questoes_reais={questoes_reais} | max_fisico={max_fisico}")
         return {
             "respostas_coluna": respostas_coluna,
             "preview_coluna": f"data:image/jpeg;base64,{preview}",
         }
+        
         
     @staticmethod
     def finalizar_correcao(prova_id, nome_aluno, id_turma, respostas_completas):
