@@ -10,8 +10,9 @@ import cv2
 import numpy as np
 import src.services.utils as utils
 
+
 class CartaoScanner:
-    def _init_(self, total_questoes, gabarito, alternativas=5):
+    def __init__(self, total_questoes, gabarito, alternativas=5):
         self.questions = total_questoes
         self.gabarito = gabarito
         self.choices = alternativas
