@@ -37,7 +37,7 @@ class CartaoScanner:
         imgBlur = cv2.GaussianBlur(imgGray, (5, 5), 1.2)
         
         # O Canny calibrado
-        imgCanny = cv2.Canny(imgBlur, 39, 40)
+        imgCanny = cv2.Canny(imgBlur, 49, 50)
         cv2.imwrite("debug_04_canny.jpg", imgCanny)
         
         # Enviamos o Canny direto para a dilatação (pulando o filtro que apagava tudo)
