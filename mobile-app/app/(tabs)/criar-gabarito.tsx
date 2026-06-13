@@ -103,6 +103,7 @@ export default function CriarGabaritoScreen() {
           setRespostas([...(mapped as Array<Alternativa | null>), ...createEmptyAnswers(totalQuestoes - mapped.length)]);
         }
 
+        // Fallback: usa respostas dos params se backend retornar vazio
         if (backendRespostas.length === 0 && params.respostas && String(params.respostas).length > 0) {
           try {
             const raw = typeof params.respostas === 'string'
@@ -220,7 +221,13 @@ export default function CriarGabaritoScreen() {
         ]);
       }
     } catch (err: any) {
-      const mensagemErro = err?.response?.data?.mensagem ?? err?.message ?? 'Não foi possível salvar o gabarito.';
+      // Expõe o erro real do backend para facilitar diagnóstico
+      const backendMsg =
+        err?.response?.data?.mensagem ??
+        err?.response?.data?.message ??
+        err?.response?.data?.erro;
+      const statusCode = err?.response?.status ? ` (${err.response.status})` : '';
+      const mensagemErro = backendMsg ?? err?.message ?? `Não foi possível salvar o gabarito${statusCode}.`;
       Alert.alert('Erro ao salvar', mensagemErro);
     } finally {
       setSalvando(false);
