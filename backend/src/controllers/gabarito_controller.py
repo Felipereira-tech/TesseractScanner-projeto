@@ -109,18 +109,17 @@ class GabaritoController:
     @staticmethod
     async def buscar_por_prova_id(prova_id: int):
         try:
-            # Valida existência da prova
-            GabaritoService._buscar_prova_ou_erro(prova_id)
             from src.models.gabarito_model import GabaritoModel
-            from src.models.provas import ProvaModel
 
+            # Busca a prova para obter quantidade_questoes
+            prova = GabaritoModel.buscar_prova_por_id(prova_id)
+            if not prova.data:
+                return JSONResponse({"status": "erro", "mensagem": "Prova não encontrada."}, status_code=404)
+
+            # Busca o gabarito associado à prova
             gabarito = GabaritoModel.buscar_por_prova_id(prova_id)
             if not gabarito.data:
                 return JSONResponse({"status": "erro", "mensagem": "Gabarito não encontrado."}, status_code=404)
-
-            prova = ProvaModel.buscar_prova_por_id(prova_id)
-            if not prova.data:
-                return JSONResponse({"status": "erro", "mensagem": "Prova não encontrada."}, status_code=404)
 
             return JSONResponse({
                 "status": "sucesso",
@@ -129,6 +128,7 @@ class GabaritoController:
                     "quantidade_questoes": prova.data.get("quantidade_questoes"),
                 },
             }, status_code=200)
+
         except ValueError as e:
             return JSONResponse({"status": "erro", "mensagem": str(e)}, status_code=422)
         except Exception as e:
@@ -138,9 +138,18 @@ class GabaritoController:
     @staticmethod
     async def atualizar_gabarito(prova_id: int, payload: dict):
         try:
+            from src.models.gabarito_model import GabaritoModel
+
             respostas_raw = payload.get("respostas_raw")
-            resultado = GabaritoService.atualizar_gabarito(prova_id, respostas_raw)
+            if not respostas_raw:
+                return JSONResponse({"status": "erro", "mensagem": "Informe as respostas."}, status_code=400)
+
+            # Normaliza respostas para o formato numérico que o banco espera (A=0, B=1, ...)
+            respostas = GabaritoService._normalizar_respostas(respostas_raw)
+
+            resultado = GabaritoModel.atualizar_por_prova_id(prova_id, {"respostas": respostas})
             return JSONResponse({"status": "sucesso", "dados": resultado.data}, status_code=200)
+
         except ValueError as e:
             return JSONResponse({"status": "erro", "mensagem": str(e)}, status_code=422)
         except Exception as e:

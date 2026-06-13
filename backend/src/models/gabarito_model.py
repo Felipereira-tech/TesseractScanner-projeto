@@ -1,6 +1,5 @@
 from src.config.database import supabase
 
-
 class GabaritoModel:
     @staticmethod
     def buscar_prova_por_id(prova_id):
@@ -22,6 +21,7 @@ class GabaritoModel:
 
     @staticmethod
     def buscar_por_prova_id(prova_id):
+        # Retorna as respostas do gabarito associado à prova
         return (
             supabase.table("gabarito")
             .select("respostas")
