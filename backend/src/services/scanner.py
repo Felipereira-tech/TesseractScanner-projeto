@@ -19,13 +19,12 @@ class CartaoScanner:
         self.width_img = 700
         self.height_img = 900
         self.min_area = 1000000
-        self.q_per_col_max = 24  # máximo físico de referência para o header
+        self.header_pct = 0.04  # ← fixo sempre, calibrado para o cartão físico
         self.numero_width_px = 117
         self.limiar_pct = 0.15
         self.dominancia = 1.10
 
     def processar(self, img_bytes):
-        self.header_pct = 1 / (self.questions + 1)
         nparr = np.frombuffer(img_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if img is None:
