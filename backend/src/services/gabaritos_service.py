@@ -1,3 +1,11 @@
+#   NÃO
+#   MEXER
+#   EM
+#   NADA
+#   NESTA
+#   PORRA
+#   !!!!!
+
 import base64
 import json
 
@@ -210,37 +218,40 @@ class GabaritoService:
         if coluna < 0 or coluna >= num_colunas:
             raise ValueError(f"Coluna {coluna} inválida. Esta prova tem {num_colunas} colunas.")
 
-        # Questões reais desta coluna
         inicio = coluna * q_per_col
         fim = min(inicio + q_per_col, total_questoes)
         questoes_reais = fim - inicio
 
-        # Máximo físico calculado dinamicamente:
-        # Se não é a última coluna → sempre 24 espaços físicos
-        # Se é a última coluna → total de espaços físicos impressos
-        #   calculado como: total_questoes máximo do cartão (90) dividido pelo num_colunas
-        #   mas como o cartão é sempre 24,24,24,18 → a última coluna é 90 - (num_colunas-1)*24
+        max_questoes_cartao = 90
         if coluna < num_colunas - 1:
-            max_fisico = q_per_col  # 24 sempre nas colunas intermediárias
+            max_fisico = q_per_col
         else:
-            # Última coluna: espaços físicos = total máximo do cartão menos as colunas anteriores
-            # O cartão suporta no máximo 90 questões = 3*24 + 18
-            max_questoes_cartao = 90
             max_fisico = max_questoes_cartao - (num_colunas - 1) * q_per_col
-            # Garante que não ultrapasse o físico real (18 para 4 colunas, 24 para 3 colunas, etc)
             max_fisico = min(max_fisico, q_per_col)
 
-        gabarito_dummy = [0] * max_fisico
+        # Busca o gabarito real da prova
+        gabarito_resposta = GabaritoModel.buscar_por_prova_id(prova_id)
+        if not gabarito_resposta.data:
+            raise ValueError("Gabarito oficial não encontrado para esta prova.")
+
+        gabarito_completo = GabaritoService._normalizar_respostas(
+            gabarito_resposta.data.get("respostas")
+        )
+
+        # Fatia o gabarito para esta coluna específica
+        gabarito_coluna = gabarito_completo[inicio:fim]
+
+        # Preenche com zeros até o max_fisico caso seja a última coluna incompleta
+        gabarito_coluna = gabarito_coluna + [0] * (max_fisico - len(gabarito_coluna))
+
         scanner = CartaoScanner(
             total_questoes=max_fisico,
-            gabarito=gabarito_dummy,
+            gabarito=gabarito_coluna,
             alternativas=5,
         )
         _, respostas_lidas, imagem_corrigida = scanner.processar(imagem_bytes)
 
-        # Retorna só as questões reais, ignorando espaços em branco
         respostas_coluna = respostas_lidas[:questoes_reais]
-
         preview = base64.b64encode(imagem_corrigida).decode("utf-8")
 
         return {

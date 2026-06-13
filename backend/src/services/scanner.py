@@ -1,3 +1,11 @@
+#   NÃO
+#   MEXER
+#   EM
+#   NADA
+#   NESTA
+#   PORRA
+#   !!!!!
+
 import cv2
 import numpy as np
 import src.services.utils as utils
@@ -29,7 +37,7 @@ class CartaoScanner:
         imgBlur = cv2.GaussianBlur(imgGray, (5, 5), 1.2)
         
         # O Canny calibrado
-        imgCanny = cv2.Canny(imgBlur, 10, 50)
+        imgCanny = cv2.Canny(imgBlur, 39, 40)
         cv2.imwrite("debug_04_canny.jpg", imgCanny)
         
         # Enviamos o Canny direto para a dilatação (pulando o filtro que apagava tudo)
@@ -165,19 +173,15 @@ class CartaoScanner:
         for x in range(self.questions):
             myAns = myIndex[x]
 
-            # Questão em branco ou rasura — não desenha nada
             if myAns < 0:
                 continue
 
-            correta = self.gabarito[x]
             cY = header_height + x * row_height + row_height // 2
 
             if grading[x] == 1:
-                # ACERTO: verde na alternativa que o aluno marcou (= correta)
                 cX = self.numero_width_px + myAns * secW + secW // 2
                 cv2.ellipse(img, (cX, cY), (rx, ry), 0, 0, 360, (0, 255, 0), cv2.FILLED)
             else:
-                # ERRO: vermelho na alternativa que o aluno marcou (errada)
                 alunoX = self.numero_width_px + myAns * secW + secW // 2
                 cv2.ellipse(img, (alunoX, cY), (rx, ry), 0, 0, 360, (0, 0, 255), cv2.FILLED)
 
