@@ -112,11 +112,23 @@ class GabaritoController:
             # Valida existência da prova
             GabaritoService._buscar_prova_ou_erro(prova_id)
             from src.models.gabarito_model import GabaritoModel
+            from src.models.provas import ProvaModel
+
             gabarito = GabaritoModel.buscar_por_prova_id(prova_id)
             if not gabarito.data:
                 return JSONResponse({"status": "erro", "mensagem": "Gabarito não encontrado."}, status_code=404)
 
-            return JSONResponse({"status": "sucesso", "dados": gabarito.data}, status_code=200)
+            prova = ProvaModel.buscar_prova_por_id(prova_id)
+            if not prova.data:
+                return JSONResponse({"status": "erro", "mensagem": "Prova não encontrada."}, status_code=404)
+
+            return JSONResponse({
+                "status": "sucesso",
+                "dados": {
+                    "respostas": gabarito.data.get("respostas"),
+                    "quantidade_questoes": prova.data.get("quantidade_questoes"),
+                },
+            }, status_code=200)
         except ValueError as e:
             return JSONResponse({"status": "erro", "mensagem": str(e)}, status_code=422)
         except Exception as e:

@@ -55,14 +55,16 @@ export default function CriarGabaritoScreen() {
   const [respostas, setRespostas] = useState<Array<Alternativa | null>>(createEmptyAnswers(DEFAULT_QUESTOES));
   const [provaId, setProvaId] = useState<number | null>(null);
   const salvarClickedRef = useRef(false);
-  const isEditing = Boolean(params?.id);
+
+  const provaIdParam = params?.id ? Number(params.id) : null;
+  const isEditing = Boolean(provaIdParam);
 
   const accentColor = '#7C3AED';
 
   useEffect(() => {
-    if (!params?.id) return;
+    if (!provaIdParam) return;
 
-    const id = Number(params.id);
+    const id = provaIdParam;
     setProvaId(id);
 
     const nome = params.nome_prova ? decodeURIComponent(String(params.nome_prova)) : '';
@@ -76,7 +78,32 @@ export default function CriarGabaritoScreen() {
     const loadGabarito = async () => {
       setCarregandoGabarito(true);
       try {
-        if (params.respostas && String(params.respostas).length > 0) {
+        const g = await ProvasAPI.buscarGabarito(id);
+        const backendRespostas = Array.isArray(g?.respostas) ? (g.respostas as Array<string | number>) : [];
+        const backendQuantidadeQuestoes = typeof g?.quantidade_questoes === 'number' ? g.quantidade_questoes : qtd;
+        const totalQuestoes = backendQuantidadeQuestoes;
+
+        setNumeroQuestoes(totalQuestoes);
+
+        const mapped = backendRespostas.map((r: string | number) => {
+          if (typeof r === 'number') return ALTERNATIVAS[r] ?? null;
+          if (typeof r === 'string') {
+            const up = r.trim().toUpperCase();
+            if (ALTERNATIVAS.includes(up as Alternativa)) return up as Alternativa;
+            if (!isNaN(Number(r))) return ALTERNATIVAS[Number(r)] ?? null;
+          }
+          return null;
+        });
+
+        if (mapped.length === totalQuestoes) {
+          setRespostas(mapped as Array<Alternativa | null>);
+        } else if (mapped.length > totalQuestoes) {
+          setRespostas((mapped as Array<Alternativa | null>).slice(0, totalQuestoes));
+        } else {
+          setRespostas([...(mapped as Array<Alternativa | null>), ...createEmptyAnswers(totalQuestoes - mapped.length)]);
+        }
+
+        if (backendRespostas.length === 0 && params.respostas && String(params.respostas).length > 0) {
           try {
             const raw = typeof params.respostas === 'string'
               ? decodeURIComponent(params.respostas)
@@ -87,39 +114,15 @@ export default function CriarGabaritoScreen() {
               .filter((item) => ALTERNATIVAS.includes(item as Alternativa)) as Alternativa[];
 
             if (respostaLista.length > 0) {
-              if (respostaLista.length < qtd) {
-                setRespostas([...respostaLista, ...createEmptyAnswers(qtd - respostaLista.length)]);
+              if (respostaLista.length < totalQuestoes) {
+                setRespostas([...respostaLista, ...createEmptyAnswers(totalQuestoes - respostaLista.length)]);
               } else {
-                setRespostas(respostaLista.slice(0, qtd));
+                setRespostas(respostaLista.slice(0, totalQuestoes));
               }
-              return;
             }
           } catch (err) {
             console.warn('[Edição] Erro ao parsear respostas dos params:', err);
           }
-        }
-
-        const g = await ProvasAPI.buscarGabarito(id);
-        if (g?.respostas) {
-          const mapped = (g.respostas as Array<any>).map((r) => {
-            if (typeof r === 'number') return ALTERNATIVAS[r] ?? null;
-            if (typeof r === 'string') {
-              const up = r.trim().toUpperCase();
-              if (ALTERNATIVAS.includes(up as Alternativa)) return up as Alternativa;
-              if (!isNaN(Number(r))) return ALTERNATIVAS[Number(r)] ?? null;
-            }
-            return null;
-          });
-
-          if (mapped.length === qtd) {
-            setRespostas(mapped as Array<Alternativa | null>);
-          } else if (mapped.length > qtd) {
-            setRespostas((mapped as Array<Alternativa | null>).slice(0, qtd));
-          } else {
-            setRespostas([...(mapped as Array<Alternativa | null>), ...createEmptyAnswers(qtd - mapped.length)]);
-          }
-        } else {
-          setRespostas(createEmptyAnswers(qtd));
         }
       } catch (err) {
         console.warn('[Edição] Erro ao buscar gabarito do backend:', err);
@@ -129,7 +132,7 @@ export default function CriarGabaritoScreen() {
     };
 
     loadGabarito();
-  }, [params]);
+  }, [provaIdParam]);
 
   useEffect(() => {
     if (numeroQuestoes <= 0) return;
@@ -180,11 +183,13 @@ export default function CriarGabaritoScreen() {
     }
 
     if (numeroQuestoes <= 0) {
+      salvarClickedRef.current = false;
       Alert.alert('Número de questões inválido', 'Defina pelo menos 1 questão.');
       return;
     }
 
     if (respostas.some((r) => !r)) {
+      salvarClickedRef.current = false;
       Alert.alert('Respostas incompletas', 'Selecione uma alternativa para cada questão.');
       return;
     }
