@@ -75,8 +75,9 @@ class GabaritoService:
         # Executa o processamento de imagem e retorna os acertos, os índices marcados e o buffer da imagem modificada
         acertos, respostas_lidas, imagem_corrigida = scanner.processar(imagem_bytes)
 
-        # Calcula a nota do aluno na escala de 0 a 5, arredondando para duas casas decimais
-        nota = round((acertos  / total_questoes) * PONTUACAO_MAXIMA, 1)
+        # Calcula a nota do aluno usando a pontuação máxima configurada
+        nota = GabaritoService._calcular_nota(acertos, total_questoes)
+
 
         # Salva a lista detalhada de marcações que o scanner leu do cartão do aluno
         GabaritoModel.salvar_respostas_aluno(
@@ -209,6 +210,20 @@ class GabaritoService:
         return respostas
     
     @staticmethod
+    def _calcular_nota(acertos, total_questoes, pontuacao_maxima=PONTUACAO_MAXIMA, casas_decimais=1):
+        """
+        Calcula a nota final usando a pontuação máxima (ex: 5).
+        Valor por questão = pontuacao_maxima / total_questoes
+        Nota final = valor por questão * acertos
+        Retorna o valor arredondado com `casas_decimais` casas.
+        """
+        if total_questoes <= 0:
+            raise ValueError("Total de questoes deve ser maior que zero.")
+
+        valor_por_questao = pontuacao_maxima / total_questoes
+        return round(valor_por_questao * acertos, casas_decimais)
+
+    @staticmethod
     def processar_coluna(prova_id, coluna, imagem_bytes):
         import math, base64
         prova = GabaritoService._buscar_prova_ou_erro(prova_id)
@@ -272,7 +287,7 @@ class GabaritoService:
             1 for i in range(total_questoes)
             if respostas_completas[i] == gabarito_oficial[i]
         )
-        nota = round((acertos / total_questoes) * 10, 2)
+        nota = GabaritoService._calcular_nota(acertos, total_questoes)
 
         GabaritoModel.salvar_respostas_aluno({
             "nome_aluno": nome_aluno,
