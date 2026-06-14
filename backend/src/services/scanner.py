@@ -34,10 +34,16 @@ class CartaoScanner:
 
         # 1. Preparação
         imgGray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        imgBlur = cv2.GaussianBlur(imgGray, (5, 5), 1.2)
-        
-        # O Canny calibrado
-        imgCanny = cv2.Canny(imgBlur, 39, 40)
+        cv2.imwrite("debug_02_gray.jpg", imgGray)
+        print(f">>> [2] grayscale salvo")
+
+        # Aplica o filtro de desfoque Gaussiano para suavizar ruídos e imperfeições texturais da folha
+        imgBlur = cv2.GaussianBlur(imgGray, (11, 11), 1)
+        cv2.imwrite("debug_03_blur.jpg", imgBlur)
+        print(f">>> [3] blur salvo")
+
+        # Detector de bordas Canny: Identifica as mudanças bruscas de intensidade (contornos)
+        imgCanny = cv2.Canny(imgBlur, 10, 50)
         cv2.imwrite("debug_04_canny.jpg", imgCanny)
         
         # Enviamos o Canny direto para a dilatação (pulando o filtro que apagava tudo)

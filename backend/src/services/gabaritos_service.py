@@ -221,33 +221,14 @@ class GabaritoService:
 
         inicio = coluna * q_per_col
         fim = min(inicio + q_per_col, total_questoes)
-        questoes_reais = fim - inicio
+        questoes_nesta_coluna = fim - inicio
 
-        max_questoes_cartao = 90
-        if coluna < num_colunas - 1:
-            max_fisico = q_per_col
-        else:
-            max_fisico = max_questoes_cartao - (num_colunas - 1) * q_per_col
-            max_fisico = min(max_fisico, q_per_col)
-
-        # Busca o gabarito real da prova
-        gabarito_resposta = GabaritoModel.buscar_por_prova_id(prova_id)
-        if not gabarito_resposta.data:
-            raise ValueError("Gabarito oficial não encontrado para esta prova.")
-
-        gabarito_completo = GabaritoService._normalizar_respostas(
-            gabarito_resposta.data.get("respostas")
-        )
-
-        # Fatia o gabarito para esta coluna específica
-        gabarito_coluna = gabarito_completo[inicio:fim]
-
-        # Preenche com zeros até o max_fisico caso seja a última coluna incompleta
-        gabarito_coluna = gabarito_coluna + [0] * (max_fisico - len(gabarito_coluna))
-
+        # Scanner processa só as questões desta coluna
+        # Gabarito fictício (não é usado para comparação aqui)
+        gabarito_dummy = [0] * questoes_nesta_coluna
         scanner = CartaoScanner(
-            total_questoes=max_fisico,
-            gabarito=gabarito_coluna,
+            total_questoes=questoes_nesta_coluna,
+            gabarito=gabarito_dummy,
             alternativas=5,
         )
         _, respostas_lidas, imagem_corrigida = scanner.processar(imagem_bytes)
@@ -259,6 +240,7 @@ class GabaritoService:
             "respostas_coluna": respostas_coluna,
             "preview_coluna": f"data:image/jpeg;base64,{preview}",
         }
+        
         
     @staticmethod
     def finalizar_correcao(prova_id, nome_aluno, id_turma, respostas_completas):
