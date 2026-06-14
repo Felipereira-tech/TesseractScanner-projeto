@@ -76,7 +76,7 @@ class GabaritoService:
         acertos, respostas_lidas, imagem_corrigida = scanner.processar(imagem_bytes)
 
         # Calcula a nota do aluno na escala de 0 a 5, arredondando para duas casas decimais
-        nota = round((acertos / total_questoes) * PONTUACAO_MAXIMA, 1)
+        nota = round((acertos  / total_questoes) * PONTUACAO_MAXIMA, 1)
 
         # Salva a lista detalhada de marcações que o scanner leu do cartão do aluno
         GabaritoModel.salvar_respostas_aluno(
